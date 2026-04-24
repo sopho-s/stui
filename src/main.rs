@@ -1,7 +1,11 @@
 mod objects;
+mod eventmanager;
 use std::ptr;
 use std::{thread, time::Duration};
-
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::channel;
+use eventmanager::EventQueue;
+use eventmanager::eventListener;
 
 
 fn main() {
@@ -18,8 +22,15 @@ fn main() {
     let mut i = 0;
     while true {
         _boxenum.newKeyboardInput('a');
-        println!("{}", _boxenum.toString());
+        print!("{}\n\r", _boxenum.toString());
         i += 1;
         thread::sleep(duration);
+        let (sendbool, recvbool): (Sender<bool>, Receiver<bool>) = channel();
+        let (sendevent, recvevent): (Sender<EventQueue>, Receiver<EventQueue>) = channel();
+        thread::spawn(
+            move || {
+                eventListener(recvbool, sendevent);
+            }
+        );
     }
 }

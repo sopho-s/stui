@@ -10,20 +10,20 @@ fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
         return a;
     }
-    return a + "\n" + &createNLengthStringNL(h, &(createNLengthString(aw, " ")));
+    return a + "\n\r" + &createNLengthStringNL(h, &(createNLengthString(aw, " ")));
 }
 fn padToWidth(a: String, w: i32) -> String {
     if (w == 0) {
         return a;
     }
     let mut returnstring = "".to_string();
-    let mut asplit = a.split("\n");
+    let mut asplit = a.split("\n\r");
     let mut i = 0;
     for line in asplit.clone() {
         returnstring.push_str(line);
         returnstring.push_str(&createNLengthString(w - line.len() as i32, " "));
         if (i != asplit.clone().count() - 1) {
-            returnstring.push_str("\n");
+            returnstring.push_str("\n\r");
         }
         i += 1;
     }
@@ -32,8 +32,8 @@ fn padToWidth(a: String, w: i32) -> String {
 
 fn joinLongerShorterRowWise(a: String, b: String, gap: String) -> String {
     let mut fullstring = "".to_string();
-    let mut asplit = a.split("\n");
-    let mut bsplit = b.split("\n");
+    let mut asplit = a.split("\n\r");
+    let mut bsplit = b.split("\n\r");
     let mut i = 0;
     for line in bsplit.clone() {
         if i == bsplit.clone().count() as i32 - 1 {
@@ -53,22 +53,22 @@ fn joinLongerShorterRowWise(a: String, b: String, gap: String) -> String {
                     concatenate(asplit.next().unwrap_or("").to_owned(), gap.clone()),
                     line.to_owned(),
                 ),
-                "\n".to_string(),
+                "\n\r".to_string(),
             ),
         );
     }
     i += 1;
     }
     for line in asplit {
-        fullstring = concatenate(fullstring, line.to_owned());//, "\n".to_string()));
+        fullstring = concatenate(fullstring, line.to_owned());//, "\n\r".to_string()));
     }
     return fullstring;
 }
 
 fn joinShorterLongerRowWise(a: String, b: String, gap: String) -> String {
     let mut fullstring = "".to_string();
-    let mut asplit = a.split("\n");
-    let mut bsplit = b.split("\n");
+    let mut asplit = a.split("\n\r");
+    let mut bsplit = b.split("\n\r");
     let mut i = 0;
     for line in asplit.clone() {
         if i == asplit.clone().count() as i32 - 1 {
@@ -87,14 +87,14 @@ fn joinShorterLongerRowWise(a: String, b: String, gap: String) -> String {
                     concatenate(line.to_owned(), gap.clone()),
                     bsplit.next().unwrap_or("").to_owned(),
                 ),
-                "\n".to_string(),
+                "\n\r".to_string(),
             ),
         );
     }
     i += 1;
     }
     for line in bsplit {
-        fullstring = concatenate(fullstring, line.to_owned());//, "\n".to_string()));
+        fullstring = concatenate(fullstring, line.to_owned());//, "\n\r".to_string()));
     }
     return fullstring;
 }
@@ -140,7 +140,7 @@ impl Text {
     }
     pub fn changeText(&mut self, text: String) {
         let mut resultstring = "".to_string();
-        let textsplit = text.split("\n");
+        let textsplit = text.split("\n\r");
         let mut maxlen: i32 = 0;
         for line in textsplit.clone() {
             if line.len() as i32 > maxlen {
@@ -151,7 +151,7 @@ impl Text {
         for line in textsplit.clone() {
             resultstring.push_str(&padToWidth(line.to_string(), maxlen));
             if i != textsplit.clone().count() - 1 {
-                resultstring.push_str("\n");
+                resultstring.push_str("\n\r");
             }
             self.height += 1;
             i += 1;
@@ -206,26 +206,26 @@ impl Box {
         }
         returnstring += &createNLengthString(
             self.paddingup,
-            &(leftpad.clone() + &midpad + &rightpad + "\n"),
+            &(leftpad.clone() + &midpad + &rightpad + "\n\r"),
         );
         unsafe {
             let itemclone = (self.item).as_ref().unwrap().toString().clone();
-            let itemsplit = itemclone.split("\n");
+            let itemsplit = itemclone.split("\n\r");
             for item in itemsplit {
                 returnstring += &(leftpad.clone()
                     + &(item)
                     + &rightpad
-                    + "\n");
+                    + "\n\r");
             }
         }
         returnstring += &createNLengthString(
             self.paddingdown,
-            &(leftpad.clone() + &midpad + &rightpad + "\n"),
+            &(leftpad.clone() + &midpad + &rightpad + "\n\r"),
         );
         if self.hasborder {
             returnstring = concatenate(
                     concatenate(
-                        concatenate(createBoxLid(self.getLength() ), "\n".to_owned()),
+                        concatenate(createBoxLid(self.getLength() ), "\n\r".to_owned()),
                         returnstring,
                     ),
                 createBoxBottom(self.getLength()),
@@ -427,7 +427,7 @@ impl Column {
                 returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
             }
             if index != self.items.len() - 1 {
-                returnstring += "\n";
+                returnstring += "\n\r";
             }
         }
         return returnstring;
@@ -565,7 +565,7 @@ impl Input {
                 returnstring.push_str(&tmpstring);
                 return returnstring;
             } else {
-                returnstring.push_str(&concatenate(tmpstring, "\n".to_string()));
+                returnstring.push_str(&concatenate(tmpstring, "\n\r".to_string()));
             }
             tmpstring = left;
         }

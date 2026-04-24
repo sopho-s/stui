@@ -7,5 +7,6 @@ pkgs.mkShell {
         docker
         cargo
         rustc
+        SDL2
     ];
 }
