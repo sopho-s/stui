@@ -5,6 +5,7 @@ mod util;
 use util::concatenate;
 use util::createNLengthString;
 use util::createNLengthStringNL;
+use std::rc::Rc;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -37,30 +38,29 @@ fn joinLongerShorterRowWise(a: String, b: String, gap: String) -> String {
     let mut i = 0;
     for line in bsplit.clone() {
         if i == bsplit.clone().count() as i32 - 1 {
-
-        fullstring = concatenate(
-            fullstring,
-                concatenate(
-                    concatenate(asplit.next().unwrap_or("").to_owned(), gap.clone()),
-                    line.to_owned(),
-                )
-        );
-        } else {
-        fullstring = concatenate(
-            fullstring,
-            concatenate(
+            fullstring = concatenate(
+                fullstring,
                 concatenate(
                     concatenate(asplit.next().unwrap_or("").to_owned(), gap.clone()),
                     line.to_owned(),
                 ),
-                "\n\r".to_string(),
-            ),
-        );
-    }
-    i += 1;
+            );
+        } else {
+            fullstring = concatenate(
+                fullstring,
+                concatenate(
+                    concatenate(
+                        concatenate(asplit.next().unwrap_or("").to_owned(), gap.clone()),
+                        line.to_owned(),
+                    ),
+                    "\n\r".to_string(),
+                ),
+            );
+        }
+        i += 1;
     }
     for line in asplit {
-        fullstring = concatenate(fullstring, line.to_owned());//, "\n\r".to_string()));
+        fullstring = concatenate(fullstring, line.to_owned()); //, "\n\r".to_string()));
     }
     return fullstring;
 }
@@ -72,29 +72,29 @@ fn joinShorterLongerRowWise(a: String, b: String, gap: String) -> String {
     let mut i = 0;
     for line in asplit.clone() {
         if i == asplit.clone().count() as i32 - 1 {
-        fullstring = concatenate(
-            fullstring,
-                concatenate(
-                    concatenate(line.to_owned(), gap.clone()),
-                    bsplit.next().unwrap_or("").to_owned(),
-                )
-        );
-        } else {
-        fullstring = concatenate(
-            fullstring,
-            concatenate(
+            fullstring = concatenate(
+                fullstring,
                 concatenate(
                     concatenate(line.to_owned(), gap.clone()),
                     bsplit.next().unwrap_or("").to_owned(),
                 ),
-                "\n\r".to_string(),
-            ),
-        );
-    }
-    i += 1;
+            );
+        } else {
+            fullstring = concatenate(
+                fullstring,
+                concatenate(
+                    concatenate(
+                        concatenate(line.to_owned(), gap.clone()),
+                        bsplit.next().unwrap_or("").to_owned(),
+                    ),
+                    "\n\r".to_string(),
+                ),
+            );
+        }
+        i += 1;
     }
     for line in bsplit {
-        fullstring = concatenate(fullstring, line.to_owned());//, "\n\r".to_string()));
+        fullstring = concatenate(fullstring, line.to_owned()); //, "\n\r".to_string()));
     }
     return fullstring;
 }
@@ -127,12 +127,26 @@ pub struct Text {
     height: i32,
 }
 
+#[derive(Clone, Debug)]
+pub struct TextChange {
+    text: String,
+    length: i32,
+    height: i32,
+}
+
+#[macro_export]
+macro_rules! Text {
+    ($text:expr, $length:expr, $height:expr) => {
+        objects::objecttypes::TEXT(Text::new(Some($text), Some($length), Some($height)))
+    };
+}
+
 impl Text {
-    pub fn new() -> Text {
+    pub fn new(text: Option<String>, length: Option<i32>, height: Option<i32>) -> Text {
         return Text {
-            text: "".to_string(),
-            length: 0,
-            height: 0,
+            text: text.unwrap_or("".to_string()),
+            length: length.unwrap_or(0),
+            height: height.unwrap_or(0),
         };
     }
     pub fn toString(&self) -> String {
@@ -166,9 +180,7 @@ impl Text {
         self.length
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {
-        ;
-    }
+    pub fn newKeyboardInput(&mut self, input: char) {}
 }
 
 #[derive(Clone, Debug)]
@@ -181,15 +193,45 @@ pub struct Box {
     paddingdown: i32,
 }
 
+#[derive(Clone, Debug)]
+pub struct BoxChange {
+    hasborder: bool,
+    paddingleft: i32,
+    paddingright: i32,
+    paddingup: i32,
+    paddingdown: i32,
+}
+
+#[macro_export]
+macro_rules! Box {
+    ($item:expr, $hasborder:expr, $paddingleft:expr, $paddingright:expr, $paddingup:expr, $paddingdown:expr) => {
+        objects::objecttypes::BOX(objects::Box::new(
+            Some(ptr::from_mut(&mut ($item))),
+            Some($hasborder),
+            Some($paddingleft),
+            Some($paddingright),
+            Some($paddingup),
+            Some($paddingdown),
+        ))
+    };
+}
+
 impl Box {
-    pub fn new() -> Box {
+    pub fn new(
+        item: Option<*mut objecttypes>,
+        hasborder: Option<bool>,
+        paddingleft: Option<i32>,
+        paddingright: Option<i32>,
+        paddingup: Option<i32>,
+        paddingdown: Option<i32>,
+    ) -> Box {
         return Box {
-            item: ptr::null_mut(),
-            hasborder: false,
-            paddingleft: 0,
-            paddingright: 0,
-            paddingup: 0,
-            paddingdown: 0,
+            item: item.unwrap_or(ptr::null_mut()),
+            hasborder: hasborder.unwrap_or(false),
+            paddingleft: paddingleft.unwrap_or(0),
+            paddingright: paddingright.unwrap_or(0),
+            paddingup: paddingup.unwrap_or(0),
+            paddingdown: paddingdown.unwrap_or(0),
         };
     }
     pub fn toString(&self) -> String {
@@ -212,10 +254,7 @@ impl Box {
             let itemclone = (self.item).as_ref().unwrap().toString().clone();
             let itemsplit = itemclone.split("\n\r");
             for item in itemsplit {
-                returnstring += &(leftpad.clone()
-                    + &(item)
-                    + &rightpad
-                    + "\n\r");
+                returnstring += &(leftpad.clone() + &(item) + &rightpad + "\n\r");
             }
         }
         returnstring += &createNLengthString(
@@ -224,10 +263,10 @@ impl Box {
         );
         if self.hasborder {
             returnstring = concatenate(
-                    concatenate(
-                        concatenate(createBoxLid(self.getLength() ), "\n\r".to_owned()),
-                        returnstring,
-                    ),
+                concatenate(
+                    concatenate(createBoxLid(self.getLength()), "\n\r".to_owned()),
+                    returnstring,
+                ),
                 createBoxBottom(self.getLength()),
             );
         }
@@ -269,8 +308,7 @@ impl Box {
         unsafe {
             if self.hasborder {
                 (self.item).as_ref().unwrap().getHeight() + self.paddingdown + self.paddingup + 2
-            }
-            else {
+            } else {
                 (self.item).as_ref().unwrap().getHeight() + self.paddingdown + self.paddingup
             }
         }
@@ -279,9 +317,8 @@ impl Box {
         unsafe {
             if self.hasborder {
                 (self.item).as_ref().unwrap().getLength() + self.paddingleft + self.paddingright + 2
-            }
-            else {
-                (self.item).as_ref().unwrap().getLength() + self.paddingleft + self.paddingright 
+            } else {
+                (self.item).as_ref().unwrap().getLength() + self.paddingleft + self.paddingright
             }
         }
     }
@@ -299,11 +336,38 @@ pub struct Row {
     gap: i32,
 }
 
+#[derive(Clone, Debug)]
+pub struct RowChange {
+    gap: i32,
+}
+
+
+
+#[macro_export]
+macro_rules! Mutify {
+    ($a:expr) => {
+        &mut ($a)
+    };
+    ($a:expr, $b:expr) => {
+        &mut ($a), &mut ($b)
+    };
+    ($a:expr,$($b:tt)*)=>{
+        &mut ($a), Mutify($($b))
+    };
+}
+
+#[macro_export]
+macro_rules! Row {
+    ($items:expr, $gap:expr) => {
+        objects::objecttypes::ROW(objects::Row::new(Some(vec![Mutify!($items)]), Some($gap)))
+    };
+}
+
 impl Row {
-    pub fn new() -> Row {
+    pub fn new(items: Option<Vec<*mut objecttypes>>, gap: Option<i32>) -> Row {
         return Row {
-            items: vec![],
-            gap: 0,
+            items: items.unwrap_or(vec![]),
+            gap: gap.unwrap_or(0),
         };
     }
     pub fn toString(&self) -> String {
@@ -399,11 +463,24 @@ pub struct Column {
     gap: i32,
 }
 
+#[derive(Clone, Debug)]
+pub struct ColumnChange {
+    gap: i32,
+}
+
+#[macro_export]
+macro_rules! Column {
+    ($items:expr, $gap:expr) => {
+        objects::objecttypes::Column(Column::new(Some(vec![Mutify!($items)]), Some($gap)))
+    };
+}
+
+
 impl Column {
-    pub fn new() -> Column {
+    pub fn new(items: Option<Vec<*mut objecttypes>>, gap: Option<i32>) -> Column {
         return Column {
-            items: vec![],
-            gap: 0,
+            items: items.unwrap_or(vec![]),
+            gap: gap.unwrap_or(0),
         };
     }
 
@@ -465,10 +542,14 @@ impl Column {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct Background {
     item: *mut objecttypes,
+    colour: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct BackgroundChange {
     colour: String,
 }
 
@@ -486,20 +567,19 @@ impl Background {
 
     pub fn toString(&self) -> String {
         unsafe {
-            concatenate(concatenate(self.colour.clone(), self.item.as_ref().unwrap().toString()), "\x1b[0m".to_owned())
+            concatenate(
+                concatenate(self.colour.clone(), self.item.as_ref().unwrap().toString()),
+                "\x1b[0m".to_owned(),
+            )
         }
     }
 
     pub fn getLength(&self) -> i32 {
-        unsafe {
-            self.item.as_ref().unwrap().getLength()
-        }
+        unsafe { self.item.as_ref().unwrap().getLength() }
     }
 
     pub fn getHeight(&self) -> i32 {
-        unsafe {
-            self.item.as_ref().unwrap().getHeight()
-        }
+        unsafe { self.item.as_ref().unwrap().getHeight() }
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {
@@ -514,14 +594,31 @@ pub struct Input {
     length: i32,
     height: i32,
     text: String,
+    placeholder: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct InputChange {
+    length: i32,
+    height: i32,
+    placeholder: String,
+}
+
+#[macro_export]
+macro_rules! Input {
+    ($length:expr, $height:expr, $placeholder:expr) => {
+        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder)))
+    };
 }
 
 impl Input {
-    pub fn new() -> Input {
+    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>) -> Input {
+        println!("im really fuckin confused: {}", placeholder.clone().unwrap());
         return Input {
-            length: 0,
-            height: 0,
+            length: length.unwrap_or(0),
+            height: height.unwrap_or(0),
             text: "".to_string(),
+            placeholder: placeholder.clone().unwrap_or("".to_string()),
         };
     }
 
@@ -534,48 +631,82 @@ impl Input {
     }
 
     pub fn toString(&self) -> String {
-        let mut tempholder = Text::new();
+        let mut tempholder = Text::new(None, None, None);
         tempholder.changeText(self.wrapText());
-        return padToHeight(padToWidth(tempholder.toString(), self.length), self.length, self.height - tempholder.getHeight());
+        return padToHeight(
+            padToWidth(tempholder.toString(), self.length),
+            self.length,
+            self.height - tempholder.getHeight(),
+        );
     }
 
     pub fn getLength(&self) -> i32 {
-        unsafe {
-            self.length
-        }
+        unsafe { self.length }
     }
 
     pub fn getHeight(&self) -> i32 {
-        unsafe {
-            self.height
-        }
+        unsafe { self.height }
     }
 
     fn wrapText(&self) -> String {
-        if self.text.len() as i32 <= self.length {
-            return self.text.clone()
+        let mut text = "".to_string();
+        if self.text.len() == 0 {
+            text = self.placeholder.clone();
+        } else {
+            text = self.text.clone();
+        }
+        if text.len() as i32 <= self.length {
+            return text;
         }
         let mut returnstring = "".to_string();
-        let mut tmpstring = self.text.clone();
         let mut currheight = 0;
-        while tmpstring.len() as i32 > self.length {
-            let left = tmpstring.split_off(self.length as usize);
+        while text.len() as i32 > self.length {
+            let left = text.split_off(self.length as usize);
             currheight += 1;
             if currheight == self.height {
-                returnstring.push_str(&tmpstring);
+                returnstring.push_str(&text);
                 return returnstring;
             } else {
-                returnstring.push_str(&concatenate(tmpstring, "\n\r".to_string()));
+                returnstring.push_str(&concatenate(text, "\n\r".to_string()));
             }
-            tmpstring = left;
+            text = left;
         }
-        returnstring += &tmpstring;
-        return returnstring
+        returnstring += &text;
+        return returnstring;
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {
-        self.text.push(input);
+        if input == '\x08' {
+            self.text.pop();
+        } else {
+            self.text.push(input);
+        }
     }
+}
+
+#[derive(Clone, Debug)]
+struct Selector {
+    item: Rc<objecttypes>,
+    next: Option<Rc<Selector>>,
+    previous: Option<Rc<Selector>>,
+    isactive: bool,
+}
+
+impl Selector {
+    pub fn new(item: Option<Rc<objecttypes>>, next: Option<Rc<Selector>>, previous: Option<Rc<Selector>>, isactive: Option<bool>) -> Selector {
+        return Selector {
+            item: item.unwrap(),
+            next: next,
+            previous: previous,
+            isactive: isactive.unwrap_or(false),
+        };
+    }
+
+    pub fn toString(&self) -> String {
+        self.item.as_ref().toString()
+    }
+
+    
 }
 
 #[derive(Clone, Debug)]
@@ -586,6 +717,7 @@ pub enum objecttypes {
     COLUMN(Column),
     BACKGROUND(Background),
     INPUT(Input),
+    SELECTOR(Selector),
 }
 
 impl objecttypes {
@@ -597,6 +729,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.toString(),
             objecttypes::BACKGROUND(c) => c.toString(),
             objecttypes::INPUT(c) => c.toString(),
+            objecttypes::SELECTOR(c) => c.toString(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -609,6 +742,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.getHeight(),
             objecttypes::BACKGROUND(c) => c.getHeight(),
             objecttypes::INPUT(c) => c.getHeight(),
+            //objecttypes::SELECTOR(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -621,6 +755,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.getLength(),
             objecttypes::BACKGROUND(c) => c.getLength(),
             objecttypes::INPUT(c) => c.getLength(),
+            //objecttypes::SELECTOR(c) => c.getLength(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -633,6 +768,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.newKeyboardInput(input),
             objecttypes::BACKGROUND(c) => c.newKeyboardInput(input),
             objecttypes::INPUT(c) => c.newKeyboardInput(input),
+            //objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
         }
     }
