@@ -3,7 +3,10 @@ name = "stui"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+debug = true
+
 [dependencies]
 sdl2 = "0.38.0"
-
+roxmltree = "0.21.1"
 crossterm = "0.29.0"

@@ -1,5 +1,7 @@
-mod objects;
-mod eventmanager;
+pub mod objects;
+pub mod eventmanager;
+pub mod xmlconverter;
+pub mod util;
 use std::ptr;
 use std::{thread, time::Duration};
 use std::sync::mpsc::{Sender, Receiver};
@@ -10,19 +12,13 @@ use eventmanager::eventListener;
 use eventmanager::event;
 use eventmanager::Key;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use crate::xmlconverter::parseDocument;
 
 fn main() {
-    let mut _inputenum = Input!(30, 2, "placeholder".to_string());
-    let mut _boxenum: objects::objecttypes = Box!(
-        _inputenum
-        , true, 2, 2, 2, 2);
-    let mut _rowenum: objects::objecttypes = Row!(
-        (_inputenum,
-        _inputenum),
-         2);
-    let mut _boxenum2: objects::objecttypes = Box!(
-        _rowenum
-        , true, 2, 2, 2, 2);
+    let mut root = parseDocument("/home/rt/Dev/stui/gui.xml");
     let duration = Duration::from_millis(100);
     let (sendint, recvint): (Sender<i32>, Receiver<i32>) = channel();
     let (sendevent, recvevent): (Sender<EventQueue>, Receiver<EventQueue>) = channel();
@@ -32,7 +28,7 @@ fn main() {
         }
     );
     while true {
-        print!("{}\n\r", _boxenum.toString());
+        print!("{}\n\r", root.toString());
         thread::sleep(duration);
         sendint.send(0);
         let mut queue = recvevent.recv().unwrap();
@@ -44,11 +40,11 @@ fn main() {
                         Key::BASICKEY(s) => {
                             let letters: Vec<char> = s.chars().collect();
                             for letter in letters {
-                                _boxenum.newKeyboardInput(letter);
+                                root.newKeyboardInput(letter);
                             }
                         },
                         Key::DELETEKEY(s) => {
-                            _boxenum.newKeyboardInput('\x08');
+                            root.newKeyboardInput('\x08');
                         }
                         Key::ESCAPEKEY(s) => {
                             disable_raw_mode().unwrap();

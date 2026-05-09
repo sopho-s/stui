@@ -8,5 +8,6 @@ pkgs.mkShell {
         cargo
         rustc
         SDL2
+        gdb
     ];
 }

@@ -1,11 +1,13 @@
 use std::cmp::max;
 use std::ptr;
 use std::str;
-mod util;
+use crate::util;
+use sdl2::libc::printf;
 use util::concatenate;
 use util::createNLengthString;
 use util::createNLengthStringNL;
 use std::rc::Rc;
+use std::cell::RefCell;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -137,7 +139,7 @@ pub struct TextChange {
 #[macro_export]
 macro_rules! Text {
     ($text:expr, $length:expr, $height:expr) => {
-        objects::objecttypes::TEXT(Text::new(Some($text), Some($length), Some($height)))
+        objects::objecttypes::TEXT(crate::objects::Text::new(Some($text), Some($length), Some($height)))
     };
 }
 
@@ -150,8 +152,36 @@ impl Text {
         };
     }
     pub fn toString(&self) -> String {
-        return self.text.clone();
+        let mut tempholder = Text::new(None, None, None);
+        tempholder.changeText(self.wrapText());
+        return padToHeight(
+            padToWidth(tempholder.clone().text, self.length),
+            self.length,
+            self.height - tempholder.getHeight(),
+        );
     }
+    fn wrapText(&self) -> String {
+        let mut _text = self.text.clone();
+        if _text.len() as i32 <= self.length {
+            return _text;
+        }
+        let mut returnstring = "".to_string();
+        let mut currheight = 0;
+        while _text.len() as i32 > self.length {
+            let left = _text.split_off(self.length as usize);
+            currheight += 1;
+            if currheight == self.height {
+                returnstring.push_str(&_text);
+                return returnstring;
+            } else {
+                returnstring.push_str(&concatenate(_text, "\n\r".to_string()));
+            }
+            _text = left;
+        }
+        returnstring += &_text;
+        return returnstring;
+    }
+
     pub fn changeText(&mut self, text: String) {
         let mut resultstring = "".to_string();
         let textsplit = text.split("\n\r");
@@ -185,7 +215,7 @@ impl Text {
 
 #[derive(Clone, Debug)]
 pub struct Box {
-    item: *mut objecttypes,
+    item: Rc<RefCell<objecttypes>>,
     hasborder: bool,
     paddingleft: i32,
     paddingright: i32,
@@ -206,7 +236,7 @@ pub struct BoxChange {
 macro_rules! Box {
     ($item:expr, $hasborder:expr, $paddingleft:expr, $paddingright:expr, $paddingup:expr, $paddingdown:expr) => {
         objects::objecttypes::BOX(objects::Box::new(
-            Some(ptr::from_mut(&mut ($item))),
+            $item,
             Some($hasborder),
             Some($paddingleft),
             Some($paddingright),
@@ -218,7 +248,7 @@ macro_rules! Box {
 
 impl Box {
     pub fn new(
-        item: Option<*mut objecttypes>,
+        item: Rc<RefCell<objecttypes>>,
         hasborder: Option<bool>,
         paddingleft: Option<i32>,
         paddingright: Option<i32>,
@@ -226,7 +256,7 @@ impl Box {
         paddingdown: Option<i32>,
     ) -> Box {
         return Box {
-            item: item.unwrap_or(ptr::null_mut()),
+            item: item,
             hasborder: hasborder.unwrap_or(false),
             paddingleft: paddingleft.unwrap_or(0),
             paddingright: paddingright.unwrap_or(0),
@@ -238,24 +268,21 @@ impl Box {
         let mut returnstring: String = "".to_string();
         let mut leftpad = createNLengthString(self.paddingleft, " ");
         let mut rightpad = createNLengthString(self.paddingright, " ");
-        if (self.hasborder) {
+        if self.hasborder {
             leftpad = concatenate("│".to_owned(), leftpad.clone());
             rightpad = concatenate(rightpad.clone(), "│".to_owned());
         }
         let mut midpad: String;
-        unsafe {
-            midpad = createNLengthString((self.item).as_ref().unwrap().getLength(), " ");
-        }
+        midpad = createNLengthString(self.item.borrow_mut().getLength(), " ");
         returnstring += &createNLengthString(
             self.paddingup,
             &(leftpad.clone() + &midpad + &rightpad + "\n\r"),
         );
-        unsafe {
-            let itemclone = (self.item).as_ref().unwrap().toString().clone();
-            let itemsplit = itemclone.split("\n\r");
-            for item in itemsplit {
-                returnstring += &(leftpad.clone() + &(item) + &rightpad + "\n\r");
-            }
+        let mut itemclone = self.item.borrow_mut().toString().clone();
+        itemclone = itemclone.replace("\r", "");
+        let itemsplit = itemclone.split("\n");
+        for item in itemsplit {
+            returnstring += &(leftpad.clone() + &(item) + &rightpad + "\n\r");
         }
         returnstring += &createNLengthString(
             self.paddingdown,
@@ -273,7 +300,7 @@ impl Box {
         return returnstring;
     }
 
-    pub fn changeItem(&mut self, item: *mut objecttypes) {
+    pub fn changeItem(&mut self, item: Rc<RefCell<objecttypes>>) {
         self.item = item;
     }
 
@@ -307,32 +334,32 @@ impl Box {
     pub fn getHeight(&self) -> i32 {
         unsafe {
             if self.hasborder {
-                (self.item).as_ref().unwrap().getHeight() + self.paddingdown + self.paddingup + 2
+                self.item.borrow_mut().getHeight() + self.paddingdown + self.paddingup + 2
             } else {
-                (self.item).as_ref().unwrap().getHeight() + self.paddingdown + self.paddingup
+                self.item.borrow_mut().getHeight() + self.paddingdown + self.paddingup
             }
         }
     }
     pub fn getLength(&self) -> i32 {
         unsafe {
             if self.hasborder {
-                (self.item).as_ref().unwrap().getLength() + self.paddingleft + self.paddingright + 2
+                self.item.borrow_mut().getLength() + self.paddingleft + self.paddingright + 2
             } else {
-                (self.item).as_ref().unwrap().getLength() + self.paddingleft + self.paddingright
+                self.item.borrow_mut().getLength() + self.paddingleft + self.paddingright
             }
         }
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {
         unsafe {
-            self.item.as_mut().unwrap().newKeyboardInput(input);
+            self.item.borrow_mut().newKeyboardInput(input);
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Row {
-    items: Vec<*mut objecttypes>,
+    items: Vec<Rc<RefCell<objecttypes>>>,
     gap: i32,
 }
 
@@ -343,28 +370,22 @@ pub struct RowChange {
 
 
 
-#[macro_export]
-macro_rules! Mutify {
-    ($a:expr) => {
-        &mut ($a)
-    };
-    ($a:expr, $b:expr) => {
-        &mut ($a), &mut ($b)
-    };
-    ($a:expr,$($b:tt)*)=>{
-        &mut ($a), Mutify($($b))
-    };
-}
 
 #[macro_export]
 macro_rules! Row {
-    ($items:expr, $gap:expr) => {
-        objects::objecttypes::ROW(objects::Row::new(Some(vec![Mutify!($items)]), Some($gap)))
+    // items as a list, plus gap
+    ($($item:expr),+ $(,)? ; $gap:expr) => {
+        objects::objecttypes::ROW(
+            objects::Row::new(
+                Some(vec![ $($item),+ ]),
+                Some($gap),
+            )
+        )
     };
 }
 
 impl Row {
-    pub fn new(items: Option<Vec<*mut objecttypes>>, gap: Option<i32>) -> Row {
+    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>) -> Row {
         return Row {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
@@ -379,37 +400,29 @@ impl Row {
         let mut maxwidth: i32 = 0;
         let gap = createNLengthString(self.gap, " ");
         unsafe {
-            returnstring = (self.items.get(0).unwrap()).as_ref().unwrap().toString();
-            maxlen = (self.items.get(0).unwrap()).as_ref().unwrap().getHeight();
-            maxwidth = (self.items.get(0).unwrap()).as_ref().unwrap().getLength();
+            returnstring = (self.items.get(0).unwrap()).borrow_mut().toString();
+            maxlen = (self.items.get(0).unwrap()).borrow_mut().getHeight();
+            maxwidth = (self.items.get(0).unwrap()).borrow_mut().getLength();
             for item in 1..self.items.len() {
                 returnstring = joinRowWise(
                     returnstring,
                     maxlen,
                     maxwidth,
-                    (self.items.get(item).unwrap()).as_ref().unwrap().clone(),
+                    (self.items.get(item).unwrap()).borrow_mut().clone(),
                     gap.clone(),
                 );
                 if maxlen
-                    < (self.items.get(item).unwrap())
-                        .as_ref()
-                        .unwrap()
+                    < (self.items.get(item).unwrap()).borrow_mut()
                         .getHeight()
                 {
-                    maxlen = (self.items.get(item).unwrap())
-                        .as_ref()
-                        .unwrap()
+                    maxlen = (self.items.get(item).unwrap()).borrow_mut()
                         .getHeight();
                 }
                 if maxwidth
-                    < (self.items.get(item).unwrap())
-                        .as_ref()
-                        .unwrap()
+                    < (self.items.get(item).unwrap()).borrow_mut()
                         .getLength()
                 {
-                    maxwidth = (self.items.get(item).unwrap())
-                        .as_ref()
-                        .unwrap()
+                    maxwidth = (self.items.get(item).unwrap()).borrow_mut()
                         .getLength();
                 }
             }
@@ -421,7 +434,7 @@ impl Row {
         self.gap = gap;
     }
 
-    pub fn addItem(&mut self, item: *mut objecttypes) {
+    pub fn addItem(&mut self, item: Rc<RefCell<objecttypes>>) {
         self.items.push(item);
     }
 
@@ -429,8 +442,8 @@ impl Row {
         let mut maxheight = 0;
         unsafe {
             for item in self.items.iter() {
-                if maxheight < item.as_ref().unwrap().getHeight() {
-                    maxheight = item.as_ref().unwrap().getHeight()
+                if maxheight < item.borrow_mut().getHeight() {
+                    maxheight = item.borrow_mut().getHeight()
                 }
             }
         }
@@ -441,7 +454,7 @@ impl Row {
         let mut width = 0;
         unsafe {
             for item in self.items.iter() {
-                width += item.as_ref().unwrap().getLength()
+                width += item.borrow_mut().getLength()
             }
         }
         width += self.gap * (self.items.len() as i32 - 1);
@@ -451,7 +464,7 @@ impl Row {
     pub fn newKeyboardInput(&mut self, input: char) {
         unsafe {
             for item in self.items.clone() {
-                item.as_mut().unwrap().newKeyboardInput(input);
+                item.borrow_mut().newKeyboardInput(input);
             }
         }
     }
@@ -459,7 +472,7 @@ impl Row {
 
 #[derive(Clone, Debug)]
 pub struct Column {
-    items: Vec<*mut objecttypes>,
+    items: Vec<Rc<RefCell<objecttypes>>>,
     gap: i32,
 }
 
@@ -470,14 +483,20 @@ pub struct ColumnChange {
 
 #[macro_export]
 macro_rules! Column {
-    ($items:expr, $gap:expr) => {
-        objects::objecttypes::Column(Column::new(Some(vec![Mutify!($items)]), Some($gap)))
+    // items as a list, plus gap
+    ($($item:expr),+ $(,)? ; $gap:expr) => {
+        objects::objecttypes::COLUMN(
+            objects::Column::new(
+                Some(vec![ $( $item ),+ ]),
+                Some($gap),
+            )
+        )
     };
 }
 
 
 impl Column {
-    pub fn new(items: Option<Vec<*mut objecttypes>>, gap: Option<i32>) -> Column {
+    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>) -> Column {
         return Column {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
@@ -488,7 +507,7 @@ impl Column {
         self.gap = gap;
     }
 
-    pub fn addItem(&mut self, item: *mut objecttypes) {
+    pub fn addItem(&mut self, item: Rc<RefCell<objecttypes>>) {
         self.items.push(item);
     }
 
@@ -500,7 +519,7 @@ impl Column {
         let mut maxwidth = self.getLength();
         for index in 0..self.items.len() {
             unsafe {
-                let item = self.items.get(index).unwrap().as_ref().unwrap();
+                let item = self.items.get(index).unwrap().borrow();
                 returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
             }
             if index != self.items.len() - 1 {
@@ -514,7 +533,7 @@ impl Column {
         let mut height = 0;
         unsafe {
             for item in self.items.iter() {
-                height += item.as_ref().unwrap().getHeight()
+                height += item.borrow().getHeight()
             }
         }
         height += self.gap * self.items.len() as i32;
@@ -525,8 +544,8 @@ impl Column {
         let mut maxwidth = 0;
         unsafe {
             for item in self.items.iter() {
-                if maxwidth < item.as_ref().unwrap().getLength() {
-                    maxwidth = item.as_ref().unwrap().getLength()
+                if maxwidth < item.borrow().getLength() {
+                    maxwidth = item.borrow().getLength()
                 }
             }
         }
@@ -536,59 +555,11 @@ impl Column {
     pub fn newKeyboardInput(&mut self, input: char) {
         unsafe {
             for item in self.items.clone() {
-                item.as_mut().unwrap().newKeyboardInput(input);
+                item.borrow_mut().newKeyboardInput(input);
             }
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct Background {
-    item: *mut objecttypes,
-    colour: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct BackgroundChange {
-    colour: String,
-}
-
-impl Background {
-    pub fn new() -> Background {
-        return Background {
-            item: ptr::null_mut(),
-            colour: "\x1b[101m".to_string(),
-        };
-    }
-
-    pub fn setItem(&mut self, item: *mut objecttypes) {
-        self.item = item;
-    }
-
-    pub fn toString(&self) -> String {
-        unsafe {
-            concatenate(
-                concatenate(self.colour.clone(), self.item.as_ref().unwrap().toString()),
-                "\x1b[0m".to_owned(),
-            )
-        }
-    }
-
-    pub fn getLength(&self) -> i32 {
-        unsafe { self.item.as_ref().unwrap().getLength() }
-    }
-
-    pub fn getHeight(&self) -> i32 {
-        unsafe { self.item.as_ref().unwrap().getHeight() }
-    }
-
-    pub fn newKeyboardInput(&mut self, input: char) {
-        unsafe {
-            self.item.as_mut().unwrap().newKeyboardInput(input);
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Input {
     length: i32,
@@ -613,7 +584,6 @@ macro_rules! Input {
 
 impl Input {
     pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>) -> Input {
-        println!("im really fuckin confused: {}", placeholder.clone().unwrap());
         return Input {
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
@@ -631,13 +601,56 @@ impl Input {
     }
 
     pub fn toString(&self) -> String {
-        let mut tempholder = Text::new(None, None, None);
-        tempholder.changeText(self.wrapText());
+        let mut tempholder = self.wrapText();
         return padToHeight(
-            padToWidth(tempholder.toString(), self.length),
+            padToWidth(tempholder.clone(), self.length),
             self.length,
-            self.height - tempholder.getHeight(),
+            self.height - self.getAdjustedHeight(tempholder),
         );
+    }
+
+    fn getAdjustedLength(&self, adjstr: String) -> i32 {
+        let mut resultstring = "".to_string();
+        let textsplit = adjstr.split("\n\r");
+        let mut maxlen: i32 = 0;
+        for line in textsplit.clone() {
+            if line.len() as i32 > maxlen {
+                maxlen = line.len() as i32;
+            }
+        }
+        let mut i = 0;
+        let mut height = 0;
+        for line in textsplit.clone() {
+            resultstring.push_str(&padToWidth(line.to_string(), maxlen));
+            if i != textsplit.clone().count() - 1 {
+                resultstring.push_str("\n\r");
+            }
+            height += 1;
+            i += 1;
+        }
+        return maxlen;
+    }
+
+    fn getAdjustedHeight(&self, adjstr: String) -> i32 {
+        let mut resultstring = "".to_string();
+        let textsplit = adjstr.split("\n\r");
+        let mut maxlen: i32 = 0;
+        for line in textsplit.clone() {
+            if line.len() as i32 > maxlen {
+                maxlen = line.len() as i32;
+            }
+        }
+        let mut i = 0;
+        let mut height = 0;
+        for line in textsplit.clone() {
+            resultstring.push_str(&padToWidth(line.to_string(), maxlen));
+            if i != textsplit.clone().count() - 1 {
+                resultstring.push_str("\n\r");
+            }
+            height += 1;
+            i += 1;
+        }
+        return height;
     }
 
     pub fn getLength(&self) -> i32 {
@@ -715,7 +728,6 @@ pub enum objecttypes {
     BOX(Box),
     ROW(Row),
     COLUMN(Column),
-    BACKGROUND(Background),
     INPUT(Input),
     SELECTOR(Selector),
 }
@@ -727,7 +739,6 @@ impl objecttypes {
             objecttypes::BOX(c) => c.toString(),
             objecttypes::ROW(c) => c.toString(),
             objecttypes::COLUMN(c) => c.toString(),
-            objecttypes::BACKGROUND(c) => c.toString(),
             objecttypes::INPUT(c) => c.toString(),
             objecttypes::SELECTOR(c) => c.toString(),
             _ => panic!("method on object not supported"),
@@ -740,7 +751,6 @@ impl objecttypes {
             objecttypes::BOX(c) => c.getHeight(),
             objecttypes::ROW(c) => c.getHeight(),
             objecttypes::COLUMN(c) => c.getHeight(),
-            objecttypes::BACKGROUND(c) => c.getHeight(),
             objecttypes::INPUT(c) => c.getHeight(),
             //objecttypes::SELECTOR(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
@@ -753,7 +763,6 @@ impl objecttypes {
             objecttypes::BOX(c) => c.getLength(),
             objecttypes::ROW(c) => c.getLength(),
             objecttypes::COLUMN(c) => c.getLength(),
-            objecttypes::BACKGROUND(c) => c.getLength(),
             objecttypes::INPUT(c) => c.getLength(),
             //objecttypes::SELECTOR(c) => c.getLength(),
             _ => panic!("method on object not supported"),
@@ -766,7 +775,6 @@ impl objecttypes {
             objecttypes::BOX(c) => c.newKeyboardInput(input),
             objecttypes::ROW(c) => c.newKeyboardInput(input),
             objecttypes::COLUMN(c) => c.newKeyboardInput(input),
-            objecttypes::BACKGROUND(c) => c.newKeyboardInput(input),
             objecttypes::INPUT(c) => c.newKeyboardInput(input),
             //objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
