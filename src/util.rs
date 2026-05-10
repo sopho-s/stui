@@ -10,7 +10,7 @@ pub fn createNLengthStringNL(n: i32, val: &str) -> String {
     for i in 0..n {
         string += val;
         if i != n - 1 {
-            string += "\n";
+            string += "\n\r";
         }
     }
     return string;

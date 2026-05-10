@@ -1,3 +1,8 @@
+# stui
+
+A rust tui library to allow for html like decleration of gui
+
+```xml
 <Box hasborder="true">
     <Column gap="8">
         <Box hasborder="true">
@@ -11,3 +16,4 @@
         </Row>
     </Column>
 </Box>
+```

@@ -24,7 +24,7 @@ fn padToWidth(a: String, w: i32) -> String {
     let mut i = 0;
     for line in asplit.clone() {
         returnstring.push_str(line);
-        returnstring.push_str(&createNLengthString(w - line.len() as i32, " "));
+        returnstring.push_str(&createNLengthString(w - line.chars().count() as i32, " "));
         if (i != asplit.clone().count() - 1) {
             returnstring.push_str("\n\r");
         }
@@ -162,12 +162,12 @@ impl Text {
     }
     fn wrapText(&self) -> String {
         let mut _text = self.text.clone();
-        if _text.len() as i32 <= self.length {
+        if _text.chars().count() as i32 <= self.length {
             return _text;
         }
         let mut returnstring = "".to_string();
         let mut currheight = 0;
-        while _text.len() as i32 > self.length {
+        while _text.chars().count() as i32 > self.length {
             let left = _text.split_off(self.length as usize);
             currheight += 1;
             if currheight == self.height {
@@ -187,8 +187,8 @@ impl Text {
         let textsplit = text.split("\n\r");
         let mut maxlen: i32 = 0;
         for line in textsplit.clone() {
-            if line.len() as i32 > maxlen {
-                maxlen = line.len() as i32;
+            if line.chars().count() as i32 > maxlen {
+                maxlen = line.chars().count() as i32;
             }
         }
         let mut i = 0;
@@ -518,10 +518,8 @@ impl Column {
         }
         let mut maxwidth = self.getLength();
         for index in 0..self.items.len() {
-            unsafe {
-                let item = self.items.get(index).unwrap().borrow();
-                returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
-            }
+            let item = self.items.get(index).unwrap().borrow();
+            returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
             if index != self.items.len() - 1 {
                 returnstring += "\n\r";
             }
@@ -531,10 +529,8 @@ impl Column {
 
     pub fn getHeight(&self) -> i32 {
         let mut height = 0;
-        unsafe {
-            for item in self.items.iter() {
-                height += item.borrow().getHeight()
-            }
+        for item in self.items.iter() {
+            height += item.borrow().getHeight()
         }
         height += self.gap * self.items.len() as i32;
         return height;
@@ -614,8 +610,8 @@ impl Input {
         let textsplit = adjstr.split("\n\r");
         let mut maxlen: i32 = 0;
         for line in textsplit.clone() {
-            if line.len() as i32 > maxlen {
-                maxlen = line.len() as i32;
+            if line.chars().count() as i32 > maxlen {
+                maxlen = line.chars().count() as i32;
             }
         }
         let mut i = 0;
@@ -636,8 +632,8 @@ impl Input {
         let textsplit = adjstr.split("\n\r");
         let mut maxlen: i32 = 0;
         for line in textsplit.clone() {
-            if line.len() as i32 > maxlen {
-                maxlen = line.len() as i32;
+            if line.chars().count() as i32 > maxlen {
+                maxlen = line.chars().count() as i32;
             }
         }
         let mut i = 0;
@@ -663,17 +659,17 @@ impl Input {
 
     fn wrapText(&self) -> String {
         let mut text = "".to_string();
-        if self.text.len() == 0 {
+        if self.text.chars().count() == 0 {
             text = self.placeholder.clone();
         } else {
             text = self.text.clone();
         }
-        if text.len() as i32 <= self.length {
+        if text.chars().count() as i32 <= self.length {
             return text;
         }
         let mut returnstring = "".to_string();
         let mut currheight = 0;
-        while text.len() as i32 > self.length {
+        while text.chars().count() as i32 > self.length {
             let left = text.split_off(self.length as usize);
             currheight += 1;
             if currheight == self.height {
