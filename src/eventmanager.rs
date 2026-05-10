@@ -1,7 +1,6 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, read};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use crossterm::terminal::enable_raw_mode;
 use std::sync::mpsc::{Receiver, Sender};
-use std::{thread, time::Duration};
 
 #[derive(Clone, Debug)]
 pub enum event {
@@ -47,7 +46,7 @@ impl EventQueue {
 
 pub fn eventListener(rx: Receiver<i32>, tx: Sender<EventQueue>) {
     let mut eventqueue = EventQueue { events: vec![] };
-    let mut s = "".to_string();
+    let s = "".to_string();
     enable_raw_mode().unwrap();
     while true {
         let recvval = rx.try_recv().unwrap_or(-1);

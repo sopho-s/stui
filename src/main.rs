@@ -56,5 +56,6 @@ fn main() {
                 _ => {},
             }
         }
+        print!("{}", root.getResetString());
     }
 }

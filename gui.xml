@@ -1,13 +1,34 @@
-<Box hasborder="true">
-    <Column gap="8">
-        <Box hasborder="true">
-            <Text text="test" length="8" height="4"/>
-        </Box>
-        <Row gap="8">
-            <Box hasborder="true">
-                <Input placeholder="placeholder" length="8" height="4"/>
+
+<Box hasborder="true" paddingleft="2" paddingright="2" paddingup="1" paddingdown="1">
+    <Column gap="1">
+        <Text text="TUI Library Demo" length="69" height="1"/>
+ 
+        <Row gap="3">
+            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
+                <Column gap="1">
+                    <Text text="Name:" length="20" height="1"/>
+                    <Input length="20" height="1" placeholder="enter name"/>
+                    <Text text="Email:" length="20" height="1"/>
+                    <Input length="20" height="1" placeholder="your@email.com"/>
+                </Column>
             </Box>
-            <Input placeholder="placeholder" length="8" height="4"/>
+ 
+            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
+                <Column gap="1">
+                    <Text text="This library supports nested layouts using rows, columns, and boxes with optional borders." length="38" height="3"/>
+                    <Text text="Type to fill the inputs." length="38" height="1"/>
+                </Column>
+            </Box>
         </Row>
+ 
+        <Row gap="2">
+            <Text text="Search:" length="8" height="1"/>
+            <Input length="59" height="1" placeholder="search..."/>
+        </Row>
+ 
+        <Box hasborder="false" paddingleft="0" paddingright="0" paddingup="0" paddingdown="0">
+            <Text text="Press ESC to quit. Backspace to delete." length="67" height="1"/>
+        </Box>
     </Column>
 </Box>
+ 

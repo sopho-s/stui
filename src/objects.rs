@@ -332,28 +332,22 @@ impl Box {
     }
 
     pub fn getHeight(&self) -> i32 {
-        unsafe {
-            if self.hasborder {
-                self.item.borrow_mut().getHeight() + self.paddingdown + self.paddingup + 2
-            } else {
-                self.item.borrow_mut().getHeight() + self.paddingdown + self.paddingup
-            }
+        if self.hasborder {
+            self.item.borrow_mut().getHeight() + self.paddingdown + self.paddingup + 2
+        } else {
+            self.item.borrow_mut().getHeight() + self.paddingdown + self.paddingup
         }
     }
     pub fn getLength(&self) -> i32 {
-        unsafe {
-            if self.hasborder {
-                self.item.borrow_mut().getLength() + self.paddingleft + self.paddingright + 2
-            } else {
-                self.item.borrow_mut().getLength() + self.paddingleft + self.paddingright
-            }
+        if self.hasborder {
+            self.item.borrow_mut().getLength() + self.paddingleft + self.paddingright + 2
+        } else {
+            self.item.borrow_mut().getLength() + self.paddingleft + self.paddingright
         }
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {
-        unsafe {
-            self.item.borrow_mut().newKeyboardInput(input);
-        }
+        self.item.borrow_mut().newKeyboardInput(input);
     }
 }
 
@@ -399,32 +393,30 @@ impl Row {
         let mut maxlen: i32 = 0;
         let mut maxwidth: i32 = 0;
         let gap = createNLengthString(self.gap, " ");
-        unsafe {
-            returnstring = (self.items.get(0).unwrap()).borrow_mut().toString();
-            maxlen = (self.items.get(0).unwrap()).borrow_mut().getHeight();
-            maxwidth = (self.items.get(0).unwrap()).borrow_mut().getLength();
-            for item in 1..self.items.len() {
-                returnstring = joinRowWise(
-                    returnstring,
-                    maxlen,
-                    maxwidth,
-                    (self.items.get(item).unwrap()).borrow_mut().clone(),
-                    gap.clone(),
-                );
-                if maxlen
-                    < (self.items.get(item).unwrap()).borrow_mut()
-                        .getHeight()
-                {
-                    maxlen = (self.items.get(item).unwrap()).borrow_mut()
-                        .getHeight();
-                }
-                if maxwidth
-                    < (self.items.get(item).unwrap()).borrow_mut()
-                        .getLength()
-                {
-                    maxwidth = (self.items.get(item).unwrap()).borrow_mut()
-                        .getLength();
-                }
+        returnstring = (self.items.get(0).unwrap()).borrow_mut().toString();
+        maxlen = (self.items.get(0).unwrap()).borrow_mut().getHeight();
+        maxwidth = (self.items.get(0).unwrap()).borrow_mut().getLength();
+        for item in 1..self.items.len() {
+            returnstring = joinRowWise(
+                returnstring,
+                maxlen,
+                maxwidth,
+                (self.items.get(item).unwrap()).borrow_mut().clone(),
+                gap.clone(),
+            );
+            if maxlen
+                < (self.items.get(item).unwrap()).borrow_mut()
+                    .getHeight()
+            {
+                maxlen = (self.items.get(item).unwrap()).borrow_mut()
+                    .getHeight();
+            }
+            if maxwidth
+                < (self.items.get(item).unwrap()).borrow_mut()
+                    .getLength()
+            {
+                maxwidth = (self.items.get(item).unwrap()).borrow_mut()
+                    .getLength();
             }
         }
         return returnstring;
@@ -440,11 +432,9 @@ impl Row {
 
     pub fn getHeight(&self) -> i32 {
         let mut maxheight = 0;
-        unsafe {
-            for item in self.items.iter() {
-                if maxheight < item.borrow_mut().getHeight() {
-                    maxheight = item.borrow_mut().getHeight()
-                }
+        for item in self.items.iter() {
+            if maxheight < item.borrow_mut().getHeight() {
+                maxheight = item.borrow_mut().getHeight()
             }
         }
         return maxheight;
@@ -452,20 +442,16 @@ impl Row {
 
     pub fn getLength(&self) -> i32 {
         let mut width = 0;
-        unsafe {
-            for item in self.items.iter() {
-                width += item.borrow_mut().getLength()
-            }
+        for item in self.items.iter() {
+            width += item.borrow_mut().getLength()
         }
         width += self.gap * (self.items.len() as i32 - 1);
         return width;
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {
-        unsafe {
-            for item in self.items.clone() {
-                item.borrow_mut().newKeyboardInput(input);
-            }
+        for item in self.items.clone() {
+            item.borrow_mut().newKeyboardInput(input);
         }
     }
 }
@@ -516,7 +502,7 @@ impl Column {
         if self.items.len() == 0 {
             return returnstring;
         }
-        let mut maxwidth = self.getLength();
+        let maxwidth = self.getLength();
         for index in 0..self.items.len() {
             let item = self.items.get(index).unwrap().borrow();
             returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
@@ -541,21 +527,17 @@ impl Column {
 
     pub fn getLength(&self) -> i32 {
         let mut maxwidth = 0;
-        unsafe {
-            for item in self.items.iter() {
-                if maxwidth < item.borrow().getLength() {
-                    maxwidth = item.borrow().getLength()
-                }
+        for item in self.items.iter() {
+            if maxwidth < item.borrow().getLength() {
+                maxwidth = item.borrow().getLength()
             }
         }
         return maxwidth;
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {
-        unsafe {
-            for item in self.items.clone() {
-                item.borrow_mut().newKeyboardInput(input);
-            }
+        for item in self.items.clone() {
+            item.borrow_mut().newKeyboardInput(input);
         }
     }
 }
@@ -618,13 +600,11 @@ impl Input {
             }
         }
         let mut i = 0;
-        let mut height = 0;
         for line in textsplit.clone() {
             resultstring.push_str(&padToWidth(line.to_string(), maxlen));
             if i != textsplit.clone().count() - 1 {
                 resultstring.push_str("\n\r");
             }
-            height += 1;
             i += 1;
         }
         return maxlen;
@@ -653,11 +633,11 @@ impl Input {
     }
 
     pub fn getLength(&self) -> i32 {
-        unsafe { self.length }
+        self.length
     }
 
     pub fn getHeight(&self) -> i32 {
-        unsafe { self.height }
+        self.height
     }
 
     fn wrapText(&self) -> String {
@@ -698,14 +678,14 @@ impl Input {
 
 #[derive(Clone, Debug)]
 struct Selector {
-    item: Rc<objecttypes>,
+    item: Rc<RefCell<objecttypes>>,
     next: Option<Rc<Selector>>,
     previous: Option<Rc<Selector>>,
     isactive: bool,
 }
 
 impl Selector {
-    pub fn new(item: Option<Rc<objecttypes>>, next: Option<Rc<Selector>>, previous: Option<Rc<Selector>>, isactive: Option<bool>) -> Selector {
+    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, next: Option<Rc<Selector>>, previous: Option<Rc<Selector>>, isactive: Option<bool>) -> Selector {
         return Selector {
             item: item.unwrap(),
             next: next,
@@ -715,10 +695,21 @@ impl Selector {
     }
 
     pub fn toString(&self) -> String {
-        self.item.as_ref().toString()
+        self.item.as_ref().borrow().toString()
     }
 
-    
+    pub fn getHeight(&self) -> i32 {
+        self.item.as_ref().borrow().getHeight()
+    }
+
+    pub fn getLength(&self) -> i32 {
+        self.item.as_ref().borrow().getLength()
+    }
+    pub fn newKeyboardInput(&mut self, input: char) {
+        if self.isactive {
+            self.item.as_ref().borrow_mut().newKeyboardInput(input);
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -751,7 +742,7 @@ impl objecttypes {
             objecttypes::ROW(c) => c.getHeight(),
             objecttypes::COLUMN(c) => c.getHeight(),
             objecttypes::INPUT(c) => c.getHeight(),
-            //objecttypes::SELECTOR(c) => c.getHeight(),
+            objecttypes::SELECTOR(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -763,7 +754,7 @@ impl objecttypes {
             objecttypes::ROW(c) => c.getLength(),
             objecttypes::COLUMN(c) => c.getLength(),
             objecttypes::INPUT(c) => c.getLength(),
-            //objecttypes::SELECTOR(c) => c.getLength(),
+            objecttypes::SELECTOR(c) => c.getLength(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -775,8 +766,15 @@ impl objecttypes {
             objecttypes::ROW(c) => c.newKeyboardInput(input),
             objecttypes::COLUMN(c) => c.newKeyboardInput(input),
             objecttypes::INPUT(c) => c.newKeyboardInput(input),
-            //objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
+            objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
         }
+    }
+
+    pub fn getResetString(&mut self) -> String {
+        let height = self.getHeight();
+        let width = self.getLength();
+        let mut string = createNLengthString(width,"\x1b[1A\x1b[2K");
+        return string;
     }
 }
