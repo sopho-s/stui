@@ -522,6 +522,9 @@ impl Column {
             returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
             if index != self.items.len() - 1 {
                 returnstring += "\n\r";
+                for i in 0..self.gap {
+                    returnstring += &(createNLengthString(maxwidth, " ") + "\n\r");
+                }
             }
         }
         return returnstring;
