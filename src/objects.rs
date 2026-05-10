@@ -211,6 +211,9 @@ impl Text {
     }
 
     pub fn newKeyboardInput(&mut self, input: char) {}
+    pub fn Reset(&mut self) {
+        ;
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -349,6 +352,9 @@ impl Box {
     pub fn newKeyboardInput(&mut self, input: char) {
         self.item.borrow_mut().newKeyboardInput(input);
     }
+    pub fn Reset(&mut self) {
+        self.item.borrow_mut().Reset();
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -454,6 +460,12 @@ impl Row {
             item.borrow_mut().newKeyboardInput(input);
         }
     }
+
+    pub fn Reset(&mut self) {
+        for item in self.items.clone() {
+            item.borrow_mut().Reset();
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -538,6 +550,11 @@ impl Column {
     pub fn newKeyboardInput(&mut self, input: char) {
         for item in self.items.clone() {
             item.borrow_mut().newKeyboardInput(input);
+        }
+    }
+    pub fn Reset(&mut self) {
+        for item in self.items.clone() {
+            item.borrow_mut().Reset();
         }
     }
 }
@@ -674,26 +691,34 @@ impl Input {
             self.text.push(input);
         }
     }
+    pub fn Reset(&mut self) {
+        ;
+    }
 }
 
 #[derive(Clone, Debug)]
-struct Selector {
+pub struct Selector {
     item: Rc<RefCell<objecttypes>>,
-    next: Option<Rc<Selector>>,
-    previous: Option<Rc<Selector>>,
+    next: Option<Rc<RefCell<objecttypes>>>,
+    previous: Option<Rc<RefCell<objecttypes>>>,
     isactive: bool,
+    wasjustset: bool,
 }
 
 impl Selector {
-    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, next: Option<Rc<Selector>>, previous: Option<Rc<Selector>>, isactive: Option<bool>) -> Selector {
+    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, next: Option<Rc<RefCell<objecttypes>>>, previous: Option<Rc<RefCell<objecttypes>>>, isactive: Option<bool>) -> Selector {
         return Selector {
             item: item.unwrap(),
             next: next,
             previous: previous,
             isactive: isactive.unwrap_or(false),
+            wasjustset: false
         };
     }
-
+    pub fn setElements(&mut self, next: Rc<RefCell<objecttypes>>, previous: Rc<RefCell<objecttypes>>) {
+        self.next = Some(Rc::clone(&next));
+        self.previous = Some(Rc::clone(&previous)); 
+    }
     pub fn toString(&self) -> String {
         self.item.as_ref().borrow().toString()
     }
@@ -706,9 +731,35 @@ impl Selector {
         self.item.as_ref().borrow().getLength()
     }
     pub fn newKeyboardInput(&mut self, input: char) {
-        if self.isactive {
+        if self.isactive && !self.wasjustset {
+            if input == '\x00' {
+                self.nex();
+                return;
+            }
+            if input == '\x01' {
+                self.prev();
+                return;
+            }
             self.item.as_ref().borrow_mut().newKeyboardInput(input);
+        } else if self.wasjustset {
+            self.wasjustset = false;
         }
+    }
+    pub fn activate(&mut self) {
+        self.wasjustset = true;
+        self.isactive = true;
+    }
+    pub fn nex(&mut self) {
+        self.isactive = false;
+        self.next.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+    }
+    pub fn prev(&mut self) {
+        self.isactive = false;
+        self.previous.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+    }
+    pub fn Reset(&mut self) {
+        self.wasjustset = false;
+        self.item.as_ref().borrow_mut().Reset()
     }
 }
 
@@ -776,5 +827,23 @@ impl objecttypes {
         let width = self.getLength();
         let mut string = createNLengthString(width,"\x1b[1A\x1b[2K");
         return string;
+    }
+
+    pub fn convertToSelector(&mut self) -> &mut Selector {
+        match self {
+            objecttypes::SELECTOR(c) => c,
+            _ => panic!("method on object not supported"),
+        }
+    }
+    pub fn Reset(&mut self) {
+        match self {
+            objecttypes::TEXT(c) => c.Reset(),
+            objecttypes::BOX(c) => c.Reset(),
+            objecttypes::ROW(c) => c.Reset(),
+            objecttypes::COLUMN(c) => c.Reset(),
+            objecttypes::INPUT(c) => c.Reset(),
+            objecttypes::SELECTOR(c) => c.Reset(),
+            _ => panic!("method on object not supported"),
+        }
     }
 }

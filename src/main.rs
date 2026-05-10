@@ -46,6 +46,13 @@ fn main() {
                         Key::DELETEKEY(s) => {
                             root.newKeyboardInput('\x08');
                         }
+                        Key::MOVEMENTKEY(s) => {
+                            if s == "right" {
+                                root.newKeyboardInput('\x00');
+                            } else if s == "left" {
+                                root.newKeyboardInput('\x01');
+                            }
+                        }
                         Key::ESCAPEKEY(s) => {
                             disable_raw_mode().unwrap();
                             return
@@ -56,6 +63,7 @@ fn main() {
                 _ => {},
             }
         }
+        root.Reset();
         print!("{}", root.getResetString());
     }
 }

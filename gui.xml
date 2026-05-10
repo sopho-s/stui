@@ -3,13 +3,17 @@
     <Column gap="1">
         <Text text="TUI Library Demo" length="69" height="1"/>
  
-        <Row gap="3">
+        <Row>
             <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
                 <Column gap="1">
                     <Text text="Name:" length="20" height="1"/>
-                    <Input length="20" height="1" placeholder="enter name"/>
+                    <Selector id="0" next="1" previous="2" isactive="true">
+                        <Input length="20" height="1" placeholder="enter name"/>
+                    </Selector>
                     <Text text="Email:" length="20" height="1"/>
-                    <Input length="20" height="1" placeholder="your@email.com"/>
+                    <Selector id="1" next="2" previous="0">
+                        <Input length="20" height="1" placeholder="your@email.com"/>
+                    </Selector>
                 </Column>
             </Box>
  
@@ -23,7 +27,9 @@
  
         <Row gap="2">
             <Text text="Search:" length="8" height="1"/>
-            <Input length="59" height="1" placeholder="search..."/>
+            <Selector id="2" next="0" previous="1">
+                <Input length="59" height="1" placeholder="search..."/>
+            </Selector>
         </Row>
  
         <Box hasborder="false" paddingleft="0" paddingright="0" paddingup="0" paddingdown="0">
