@@ -1,13 +1,10 @@
-use std::cmp::max;
-use std::ptr;
-use std::str;
 use crate::util;
-use sdl2::libc::printf;
 use util::concatenate;
 use util::createNLengthString;
 use util::createNLengthStringNL;
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::eventmanager::Key;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -118,8 +115,33 @@ fn joinRowWise(_as: String, ah: i32, aw: i32, b: objecttypes, gap: String) -> St
 fn createBoxLid(width: i32) -> String {
     return "╭".to_owned() + &createNLengthString(width - 2, "─") + "╮";
 }
+
 fn createBoxBottom(width: i32) -> String {
     return "╰".to_owned() + &createNLengthString(width - 2, "─") + "╯";
+}
+
+#[derive(Clone, Debug)]
+pub struct Colour {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+
+fn colourBackground(text:String, colour: Colour) -> String {
+    let mut textsplit: Vec<&str> = text.split("\n\r").collect();
+    let mut result = "".to_owned();
+    for line in 0..textsplit.len() {
+        result += &((format!("\x1b[38;2;{};{};{}m", colour.r, colour.g, colour.b).to_owned() + textsplit[line]).to_owned() + &format!("\x1b[38;2;{};{};{}m", colour.r, colour.g, colour.b).to_owned());
+        if line != textsplit.len() - 1 {
+            result += "\n\r";
+        }
+    }
+    return result;
+}
+
+#[derive(Clone, Debug)]
+pub struct Effect {
+    background: Colour
 }
 
 #[derive(Clone, Debug)]
@@ -127,6 +149,7 @@ pub struct Text {
     text: String,
     length: i32,
     height: i32,
+    effect: Option<Effect>
 }
 
 #[derive(Clone, Debug)]
@@ -138,21 +161,22 @@ pub struct TextChange {
 
 #[macro_export]
 macro_rules! Text {
-    ($text:expr, $length:expr, $height:expr) => {
-        objects::objecttypes::TEXT(crate::objects::Text::new(Some($text), Some($length), Some($height)))
+    ($text:expr, $length:expr, $height:expr, $effect:expr) => {
+        objects::objecttypes::TEXT(crate::objects::Text::new(Some($text), Some($length), Some($height), $effect))
     };
 }
 
 impl Text {
-    pub fn new(text: Option<String>, length: Option<i32>, height: Option<i32>) -> Text {
+    pub fn new(text: Option<String>, length: Option<i32>, height: Option<i32>, effect: Option<Effect>) -> Text {
         return Text {
             text: text.unwrap_or("".to_string()),
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
+            effect: effect
         };
     }
     pub fn toString(&self) -> String {
-        let mut tempholder = Text::new(None, None, None);
+        let mut tempholder = Text::new(None, None, None, None);
         tempholder.changeText(self.wrapText());
         return padToHeight(
             padToWidth(tempholder.clone().text, self.length),
@@ -210,7 +234,7 @@ impl Text {
         self.length
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {}
+    pub fn newKeyboardInput(&mut self, input: Key) {}
     pub fn Reset(&mut self) {
         ;
     }
@@ -224,6 +248,7 @@ pub struct Box {
     paddingright: i32,
     paddingup: i32,
     paddingdown: i32,
+    effect: Option<Effect>
 }
 
 #[derive(Clone, Debug)]
@@ -237,7 +262,7 @@ pub struct BoxChange {
 
 #[macro_export]
 macro_rules! Box {
-    ($item:expr, $hasborder:expr, $paddingleft:expr, $paddingright:expr, $paddingup:expr, $paddingdown:expr) => {
+    ($item:expr, $hasborder:expr, $paddingleft:expr, $paddingright:expr, $paddingup:expr, $paddingdown:expr, $effect:expr) => {
         objects::objecttypes::BOX(objects::Box::new(
             $item,
             Some($hasborder),
@@ -245,6 +270,7 @@ macro_rules! Box {
             Some($paddingright),
             Some($paddingup),
             Some($paddingdown),
+            $effect
         ))
     };
 }
@@ -257,6 +283,7 @@ impl Box {
         paddingright: Option<i32>,
         paddingup: Option<i32>,
         paddingdown: Option<i32>,
+        effect: Option<Effect>
     ) -> Box {
         return Box {
             item: item,
@@ -265,6 +292,7 @@ impl Box {
             paddingright: paddingright.unwrap_or(0),
             paddingup: paddingup.unwrap_or(0),
             paddingdown: paddingdown.unwrap_or(0),
+            effect: effect
         };
     }
     pub fn toString(&self) -> String {
@@ -349,7 +377,7 @@ impl Box {
         }
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {
+    pub fn newKeyboardInput(&mut self, input: Key) {
         self.item.borrow_mut().newKeyboardInput(input);
     }
     pub fn Reset(&mut self) {
@@ -361,6 +389,7 @@ impl Box {
 pub struct Row {
     items: Vec<Rc<RefCell<objecttypes>>>,
     gap: i32,
+    effect: Option<Effect>
 }
 
 #[derive(Clone, Debug)]
@@ -374,21 +403,23 @@ pub struct RowChange {
 #[macro_export]
 macro_rules! Row {
     // items as a list, plus gap
-    ($($item:expr),+ $(,)? ; $gap:expr) => {
+    ($($item:expr),+ $(,)? ; $gap:expr, $effect:expr) => {
         objects::objecttypes::ROW(
             objects::Row::new(
                 Some(vec![ $($item),+ ]),
                 Some($gap),
+                $effect
             )
         )
     };
 }
 
 impl Row {
-    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>) -> Row {
+    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>, effect: Option<Effect>) -> Row {
         return Row {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
+            effect: effect
         };
     }
     pub fn toString(&self) -> String {
@@ -455,9 +486,9 @@ impl Row {
         return width;
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {
+    pub fn newKeyboardInput(&mut self, input: Key) {
         for item in self.items.clone() {
-            item.borrow_mut().newKeyboardInput(input);
+            item.borrow_mut().newKeyboardInput(input.clone());
         }
     }
 
@@ -472,6 +503,7 @@ impl Row {
 pub struct Column {
     items: Vec<Rc<RefCell<objecttypes>>>,
     gap: i32,
+    effect: Option<Effect>
 }
 
 #[derive(Clone, Debug)]
@@ -482,11 +514,12 @@ pub struct ColumnChange {
 #[macro_export]
 macro_rules! Column {
     // items as a list, plus gap
-    ($($item:expr),+ $(,)? ; $gap:expr) => {
+    ($($item:expr),+ $(,)? ; $gap:expr, $effect:expr) => {
         objects::objecttypes::COLUMN(
             objects::Column::new(
                 Some(vec![ $( $item ),+ ]),
                 Some($gap),
+                $effect
             )
         )
     };
@@ -494,10 +527,11 @@ macro_rules! Column {
 
 
 impl Column {
-    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>) -> Column {
+    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>, effect: Option<Effect>) -> Column {
         return Column {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
+            effect: effect
         };
     }
 
@@ -547,9 +581,9 @@ impl Column {
         return maxwidth;
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {
+    pub fn newKeyboardInput(&mut self, input: Key) {
         for item in self.items.clone() {
-            item.borrow_mut().newKeyboardInput(input);
+            item.borrow_mut().newKeyboardInput(input.clone());
         }
     }
     pub fn Reset(&mut self) {
@@ -564,6 +598,7 @@ pub struct Input {
     height: i32,
     text: String,
     placeholder: String,
+    effect: Option<Effect>
 }
 
 #[derive(Clone, Debug)]
@@ -575,18 +610,19 @@ pub struct InputChange {
 
 #[macro_export]
 macro_rules! Input {
-    ($length:expr, $height:expr, $placeholder:expr) => {
-        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder)))
+    ($length:expr, $height:expr, $placeholder:expr, $effect:expr) => {
+        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder), $effect))
     };
 }
 
 impl Input {
-    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>) -> Input {
+    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>, effect: Option<Effect>) -> Input {
         return Input {
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
             text: "".to_string(),
             placeholder: placeholder.clone().unwrap_or("".to_string()),
+            effect: effect
         };
     }
 
@@ -684,11 +720,11 @@ impl Input {
         return returnstring;
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {
-        if input == '\x08' {
-            self.text.pop();
-        } else {
-            self.text.push(input);
+    pub fn newKeyboardInput(&mut self, input: Key) {
+        match input {
+            Key::BASICKEY(c) => {self.text += &c;},
+            Key::DELETEKEY(c) => {self.text.pop();},
+            _ => return,
         }
     }
     pub fn Reset(&mut self) {
@@ -699,25 +735,33 @@ impl Input {
 #[derive(Clone, Debug)]
 pub struct Selector {
     item: Rc<RefCell<objecttypes>>,
-    next: Option<Rc<RefCell<objecttypes>>>,
-    previous: Option<Rc<RefCell<objecttypes>>>,
+    right: Option<Rc<RefCell<objecttypes>>>,
+    left: Option<Rc<RefCell<objecttypes>>>,
+    up: Option<Rc<RefCell<objecttypes>>>,
+    down: Option<Rc<RefCell<objecttypes>>>,
     isactive: bool,
     wasjustset: bool,
+    effect: Option<Effect>
 }
 
 impl Selector {
-    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, next: Option<Rc<RefCell<objecttypes>>>, previous: Option<Rc<RefCell<objecttypes>>>, isactive: Option<bool>) -> Selector {
+    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>, isactive: Option<bool>, effect: Option<Effect>) -> Selector {
         return Selector {
             item: item.unwrap(),
-            next: next,
-            previous: previous,
+            right: right,
+            left: left,
+            up: up,
+            down: down,
             isactive: isactive.unwrap_or(false),
-            wasjustset: false
+            wasjustset: false,
+            effect: effect
         };
     }
-    pub fn setElements(&mut self, next: Rc<RefCell<objecttypes>>, previous: Rc<RefCell<objecttypes>>) {
-        self.next = Some(Rc::clone(&next));
-        self.previous = Some(Rc::clone(&previous)); 
+    pub fn setElements(&mut self, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>) {
+        self.right = right;
+        self.left = left; 
+        self.up = up;
+        self.down = down; 
     }
     pub fn toString(&self) -> String {
         self.item.as_ref().borrow().toString()
@@ -730,15 +774,21 @@ impl Selector {
     pub fn getLength(&self) -> i32 {
         self.item.as_ref().borrow().getLength()
     }
-    pub fn newKeyboardInput(&mut self, input: char) {
+    pub fn newKeyboardInput(&mut self, input: Key) {
         if self.isactive && !self.wasjustset {
-            if input == '\x00' {
-                self.nex();
-                return;
-            }
-            if input == '\x01' {
-                self.prev();
-                return;
+            match input.clone() {
+                Key::MOVEMENTKEY(c) => {
+                    if c == "left" {
+                        self.Left();
+                    } else if c == "right" {
+                        self.Right();
+                    } else if c == "up" {
+                        self.Up();
+                    } else if c == "down" {
+                        self.Down();
+                    }
+                },
+                _ => {},
             }
             self.item.as_ref().borrow_mut().newKeyboardInput(input);
         } else if self.wasjustset {
@@ -749,13 +799,29 @@ impl Selector {
         self.wasjustset = true;
         self.isactive = true;
     }
-    pub fn nex(&mut self) {
-        self.isactive = false;
-        self.next.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+    fn Right(&mut self) {
+        if self.right.as_ref().is_some() {
+            self.isactive = false;
+            self.right.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+        }
     }
-    pub fn prev(&mut self) {
-        self.isactive = false;
-        self.previous.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+    fn Left(&mut self) {
+        if self.left.as_ref().is_some() {
+            self.isactive = false;
+            self.left.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+        }
+    }
+    fn Up(&mut self) {
+        if self.up.as_ref().is_some() {
+            self.isactive = false;
+            self.up.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+        }
+    }
+    fn Down(&mut self) {
+        if self.down.as_ref().is_some() {
+            self.isactive = false;
+            self.down.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
+        }
     }
     pub fn Reset(&mut self) {
         self.wasjustset = false;
@@ -810,7 +876,7 @@ impl objecttypes {
         }
     }
 
-    pub fn newKeyboardInput(&mut self, input: char) {
+    pub fn newKeyboardInput(&mut self, input: Key) {
         match self {
             objecttypes::TEXT(c) => c.newKeyboardInput(input),
             objecttypes::BOX(c) => c.newKeyboardInput(input),

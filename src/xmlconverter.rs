@@ -1,5 +1,3 @@
-use roxmltree::Document;
-use sdl2::libc::PACKET_AUXDATA;
 use crate::objects;
 use crate::Box;
 use crate::Text;
@@ -12,16 +10,22 @@ use std::vec;
 
 fn linkSelectors(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorlist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorwants: Rc<RefCell<Vec<Vec<i32>>>>) {
     for i in 0..selectorwants.as_ref().borrow().len() {
-        let next = selectorwants.as_ref().borrow()[i][0];
-        let previous = selectorwants.as_ref().borrow()[i][1];
-        let nextindex = idlist.as_ref().borrow().iter().position(|&r| r == next).unwrap();
-        let previousindex = idlist.as_ref().borrow().iter().position(|&r| r == previous).unwrap();
         let refer = &selectorlist.as_ref().borrow_mut()[i];
         let mut refer2 = refer.as_ref().borrow_mut();
         let selector = refer2.convertToSelector();
-        let nextelem = Rc::clone(&nodelist.as_ref().borrow()[nextindex]);
-        let previouselem = Rc::clone(&nodelist.as_ref().borrow()[previousindex]);
-        selector.setElements(nextelem, previouselem);
+        let mut elemvec = vec![];
+        for t in 0..4 {
+            let currelem;
+            let selectorwant = selectorwants.as_ref().borrow()[i][t];
+            if selectorwant != -1 {
+                let currindex = idlist.as_ref().borrow().iter().position(|&r| r == selectorwant).unwrap();
+                currelem = Some(Rc::clone(&nodelist.as_ref().borrow()[currindex]));
+            } else {
+                currelem = None;
+            }
+            elemvec.push(currelem);
+        }
+        selector.setElements(elemvec[0].clone(), elemvec[1].clone(), elemvec[2].clone(), elemvec[3].clone());
     }
 }
 
@@ -35,7 +39,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                     node.attribute("paddingleft").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("paddingright").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("paddingup").unwrap_or("0").parse::<i32>().unwrap(),
-                    node.attribute("paddingdown").unwrap_or("0").parse::<i32>().unwrap()
+                    node.attribute("paddingdown").unwrap_or("0").parse::<i32>().unwrap(),
+                    None
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -47,7 +52,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
             "Text" => {
                 let object = Text!(node.attribute("text").unwrap_or("").to_owned(),
                     node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
-                    node.attribute("height").unwrap_or("0").parse::<i32>().unwrap()
+                    node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
+                    None
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -66,7 +72,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let object = objects::objecttypes::ROW(
                     objects::Row::new(
                         Some(vec),
-                        Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap())
+                        Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap()),
+                        None
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));
@@ -86,7 +93,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let object = objects::objecttypes::COLUMN(
                     objects::Column::new(
                         Some(vec),
-                        Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap())
+                        Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap()),
+                        None
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));
@@ -99,7 +107,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
             "Input" => {
                 let object = Input!(node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
-                    node.attribute("placeholder").unwrap_or("").to_owned()
+                    node.attribute("placeholder").unwrap_or("").to_owned(),
+                    None
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -114,12 +123,20 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants))),
                         None,
                         None,
-                        Some(node.attribute("isactive").unwrap_or("false").to_owned() == "true")
+                        None,
+                        None,
+                        Some(node.attribute("isactive").unwrap_or("false").to_owned() == "true"),
+                        None
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 selectorlist.borrow_mut().push(Rc::clone(&thisobject));
-                selectorwants.borrow_mut().push(vec![node.attribute("next").unwrap_or("-1").parse::<i32>().unwrap(), node.attribute("previous").unwrap_or("-1").parse::<i32>().unwrap()]);
+                selectorwants.borrow_mut().push(vec![
+                    node.attribute("right").unwrap_or("-1").parse::<i32>().unwrap(),
+                    node.attribute("left").unwrap_or("-1").parse::<i32>().unwrap(),
+                    node.attribute("up").unwrap_or("-1").parse::<i32>().unwrap(),
+                    node.attribute("down").unwrap_or("-1").parse::<i32>().unwrap()
+                    ]);
                 if node.attribute("id").unwrap_or("-1") != "-1" {
                     idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
                     nodelist.as_ref().borrow_mut().push(Rc::clone(&thisobject));
