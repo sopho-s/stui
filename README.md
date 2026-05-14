@@ -3,17 +3,42 @@
 A rust tui library to allow for html like decleration of gui
 
 ```xml
-<Box hasborder="true">
-    <Column gap="8">
-        <Box hasborder="true">
-            <Text text="test" length="8" height="4"/>
-        </Box>
-        <Row gap="8">
-            <Box hasborder="true">
-                <Input placeholder="placeholder" length="8" height="4"/>
+<Box hasborder="true" paddingleft="2" paddingright="2" paddingup="1" paddingdown="1">
+    <Column gap="1">
+        <Text text="TUI Library Demo" length="69" height="1"/>
+ 
+        <Row>
+            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
+                <Column gap="1">
+                    <Text text="Name:" length="20" height="1"/>
+                    <Selector id="0" down="1" isactive="true" activecolour="#09ff00">
+                        <Input length="20" height="1" placeholder="enter name"/>
+                    </Selector>
+                    <Text text="Email:" length="20" height="1"/>
+                    <Selector id="1" down="2" up="0" activecolour="#09ff00">
+                        <Input length="20" height="1" placeholder="your@email.com"/>
+                    </Selector>
+                </Column>
             </Box>
-            <Input placeholder="placeholder" length="8" height="4"/>
+ 
+            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
+                <Column gap="1">
+                    <Text text="This library supports nested layouts using rows, columns, and boxes with optional borders." length="38" height="3"/>
+                    <Text text="Type to fill the inputs." length="38" height="1"/>
+                </Column>
+            </Box>
         </Row>
+ 
+        <Row gap="2">
+            <Text text="Search:" length="8" height="1"/>
+            <Selector id="2" up="1" activecolour="#09ff00">
+                <Input length="59" height="1" placeholder="search..."/>
+            </Selector>
+        </Row>
+ 
+        <Box hasborder="false" paddingleft="0" paddingright="0" paddingup="0" paddingdown="0">
+            <Text text="Press ESC to quit. Backspace to delete." length="67" height="1"/>
+        </Box>
     </Column>
 </Box>
 ```
