@@ -10,3 +10,4 @@ debug = true
 sdl2 = "0.38.0"
 roxmltree = "0.21.1"
 crossterm = "0.29.0"
+console = "0.16.3"

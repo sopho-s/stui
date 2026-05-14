@@ -9,5 +9,6 @@ pkgs.mkShell {
         rustc
         SDL2
         gdb
+        rust-analyzer
     ];
 }

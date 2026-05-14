@@ -3,6 +3,8 @@ use crate::Box;
 use crate::Text;
 use crate::Input;
 use crate::objects::objecttypes;
+use crate::objects::Colour;
+use crate::objects::Effect;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::fs;
@@ -31,6 +33,13 @@ fn linkSelectors(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefC
 
 fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorlist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorwants: Rc<RefCell<Vec<Vec<i32>>>>) -> Rc<RefCell<objecttypes>> {
     for node in doc.descendants().filter(|n| n.is_element()) {
+        let colour;
+        if node.attribute("colour").unwrap_or("") != "" {
+            colour = Some(Colour::new(node.attribute("colour").unwrap().to_owned()));
+        } else {
+            colour = None;
+        }
+        let effect = Some(Effect::new(colour));
         match node.tag_name().name() {
             "Box" => {
                 let object = Box!(
@@ -40,7 +49,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                     node.attribute("paddingright").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("paddingup").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("paddingdown").unwrap_or("0").parse::<i32>().unwrap(),
-                    None
+                    effect
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -53,7 +62,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let object = Text!(node.attribute("text").unwrap_or("").to_owned(),
                     node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
-                    None
+                    effect
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -73,7 +82,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                     objects::Row::new(
                         Some(vec),
                         Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap()),
-                        None
+                        effect
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));
@@ -94,7 +103,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                     objects::Column::new(
                         Some(vec),
                         Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap()),
-                        None
+                        effect
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));
@@ -108,7 +117,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let object = Input!(node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("placeholder").unwrap_or("").to_owned(),
-                    None
+                    effect
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -118,6 +127,13 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 return thisobject;
             },
             "Selector" => {
+                let activecolour;
+                if node.attribute("activecolour").unwrap_or("") != "" {
+                    activecolour = Some(Colour::new(node.attribute("activecolour").unwrap().to_owned()));
+                } else {
+                    activecolour = None;
+                }
+                let activeeffect = Some(Effect::new(activecolour));
                 let object = objects::objecttypes::SELECTOR(
                     objects::Selector::new(
                         Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants))),
@@ -126,7 +142,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         None,
                         None,
                         Some(node.attribute("isactive").unwrap_or("false").to_owned() == "true"),
-                        None
+                        effect,
+                        activeeffect
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));

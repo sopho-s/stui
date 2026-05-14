@@ -21,7 +21,7 @@ fn padToWidth(a: String, w: i32) -> String {
     let mut i = 0;
     for line in asplit.clone() {
         returnstring.push_str(line);
-        returnstring.push_str(&createNLengthString(w - line.chars().count() as i32, " "));
+        returnstring.push_str(&createNLengthString(w - console::strip_ansi_codes(line).chars().count() as i32, " "));
         if (i != asplit.clone().count() - 1) {
             returnstring.push_str("\n\r");
         }
@@ -98,15 +98,13 @@ fn joinShorterLongerRowWise(a: String, b: String, gap: String) -> String {
     return fullstring;
 }
 
-fn joinRowWise(_as: String, ah: i32, aw: i32, b: objecttypes, gap: String) -> String {
-    let bh = b.getHeight();
+fn joinRowWise(_as: String, ah: i32, aw: i32, _bs: String, bh: i32, bw: i32, gap: String) -> String {
     let mut fullstring = "".to_string();
-    let mut _bs = b.toString();
     if (ah > bh) {
-        let newbs = padToHeight(_bs.clone(), b.getLength(), ah - b.getHeight());
+        let newbs = padToHeight(_bs.clone(), bw, ah - bh);
         fullstring = joinLongerShorterRowWise(_as.clone(), newbs, gap);
     } else {
-        let newas = padToHeight(_as.clone(), aw, b.getHeight() - ah);
+        let newas = padToHeight(_as.clone(), aw, bh - ah);
         fullstring = joinShorterLongerRowWise(newas, _bs.clone(), gap);
     }
     return fullstring;
@@ -127,12 +125,47 @@ pub struct Colour {
     b: u8,
 }
 
-fn colourBackground(text:String, colour: Colour) -> String {
+impl Colour {
+    pub fn new(colour: String) -> Colour {
+        if &colour[0..1] == "#" {
+            let r = u8::from_str_radix(&colour[1..3], 16).unwrap();
+            let g = u8::from_str_radix(&colour[3..5], 16).unwrap();
+            let b = u8::from_str_radix(&colour[5..7], 16).unwrap();
+            print!("{:?},{:?},{:?}\n\r", r.clone(), g.clone(), b.clone());
+            return Colour {
+                r : r,
+                g : g,
+                b : b
+            };
+        }
+        return Colour {
+            r : 0 as u8,
+            g : 0 as u8,
+            b : 0 as u8
+        };
+    }
+}
+
+
+fn colourBackgroundInner(text: String, colour: Colour) -> String {
     let mut textsplit: Vec<&str> = text.split("\n\r").collect();
     let mut result = "".to_owned();
     for line in 0..textsplit.len() {
-        result += &((format!("\x1b[38;2;{};{};{}m", colour.r, colour.g, colour.b).to_owned() + textsplit[line]).to_owned() + &format!("\x1b[38;2;{};{};{}m", colour.r, colour.g, colour.b).to_owned());
-        if line != textsplit.len() - 1 {
+        result += &((format!("\x1b[48;2;{};{};{}m", colour.r, colour.g, colour.b).to_owned() + textsplit[line]).to_owned() + &format!("\x1b[48;2;{};{};{}m", colour.r, colour.g, colour.b));
+
+        if line < textsplit.len() - 1 {
+            result += "\n\r";
+        }
+    }
+    return result;
+}
+
+fn colourBackgroundOuter(text: String, colour: Colour) -> String {
+    let mut textsplit: Vec<&str> = text.split("\n\r").collect();
+    let mut result = "".to_owned();
+    for line in 0..textsplit.len() {
+        result += &(format!("\x1b[48;2;{};{};{}m", colour.r, colour.g, colour.b).to_owned() + &((textsplit[line]).to_owned() + "\x1b[0m"));
+        if line < textsplit.len() - 1 {
             result += "\n\r";
         }
     }
@@ -141,7 +174,31 @@ fn colourBackground(text:String, colour: Colour) -> String {
 
 #[derive(Clone, Debug)]
 pub struct Effect {
-    background: Colour
+    background: Option<Colour>
+}
+
+impl Effect {
+    pub fn new(colour: Option<Colour>) -> Effect {
+        Effect {
+            background: colour
+        }
+    }
+
+    pub fn applyEffectInner(&self, string: String) -> String {
+        let mut returnstring = string.clone();
+        if self.background.is_some() {
+            returnstring = colourBackgroundInner(string, self.background.clone().unwrap());
+        }
+        return returnstring;
+    }
+
+    pub fn applyEffectOuter(&self, string: String) -> String {
+        let mut returnstring = string.clone();
+        if self.background.is_some() {
+            returnstring = colourBackgroundOuter(string, self.background.clone().unwrap());
+        }
+        return returnstring;
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -178,11 +235,17 @@ impl Text {
     pub fn toString(&self) -> String {
         let mut tempholder = Text::new(None, None, None, None);
         tempholder.changeText(self.wrapText());
-        return padToHeight(
+
+        let returnstring = padToHeight(
             padToWidth(tempholder.clone().text, self.length),
             self.length,
             self.height - tempholder.getHeight(),
         );
+        if self.effect.is_none() {
+            return returnstring;
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(self.effect.clone().unwrap().applyEffectInner(returnstring));
+        }
     }
     fn wrapText(&self) -> String {
         let mut _text = self.text.clone();
@@ -313,7 +376,11 @@ impl Box {
         itemclone = itemclone.replace("\r", "");
         let itemsplit = itemclone.split("\n");
         for item in itemsplit {
-            returnstring += &(leftpad.clone() + &(item) + &rightpad + "\n\r");
+            let mut inbetweenitem = item.to_owned();
+            if self.effect.is_some() {
+                inbetweenitem = self.effect.clone().unwrap().applyEffectInner(inbetweenitem.clone());
+            }
+            returnstring += &(leftpad.clone() + &(inbetweenitem) + &rightpad + "\n\r");
         }
         returnstring += &createNLengthString(
             self.paddingdown,
@@ -328,7 +395,11 @@ impl Box {
                 createBoxBottom(self.getLength()),
             );
         }
-        return returnstring;
+        if self.effect.is_none() {
+            return returnstring;
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(returnstring);
+        }
     }
 
     pub fn changeItem(&mut self, item: Rc<RefCell<objecttypes>>) {
@@ -427,36 +498,37 @@ impl Row {
         if self.items.len() == 0 {
             return returnstring;
         }
-        let mut maxlen: i32 = 0;
-        let mut maxwidth: i32 = 0;
+        let mut maxlen: i32 = (self.items.get(0).unwrap()).borrow().getHeight();
+        let mut maxwidth: i32 = (self.items.get(0).unwrap()).borrow().getLength();
         let gap = createNLengthString(self.gap, " ");
-        returnstring = (self.items.get(0).unwrap()).borrow_mut().toString();
-        maxlen = (self.items.get(0).unwrap()).borrow_mut().getHeight();
-        maxwidth = (self.items.get(0).unwrap()).borrow_mut().getLength();
+        returnstring = (self.items.get(0).unwrap()).borrow().toString();
         for item in 1..self.items.len() {
+            let mut inbetweenitem = self.items[item].clone().as_ref().borrow().toString();
+            if self.effect.is_some() {
+                inbetweenitem = self.effect.clone().unwrap().applyEffectInner(inbetweenitem.clone());
+            }
             returnstring = joinRowWise(
                 returnstring,
                 maxlen,
                 maxwidth,
-                (self.items.get(item).unwrap()).borrow_mut().clone(),
+                inbetweenitem.clone(),
+                (self.items.get(item).unwrap()).borrow().getHeight(),
+                (self.items.get(item).unwrap()).borrow().getLength(),
                 gap.clone(),
             );
-            if maxlen
-                < (self.items.get(item).unwrap()).borrow_mut()
-                    .getHeight()
-            {
-                maxlen = (self.items.get(item).unwrap()).borrow_mut()
-                    .getHeight();
+            if maxlen < (self.items.get(item).unwrap()).borrow().getHeight() {
+                maxlen = (self.items.get(item).unwrap()).borrow().getHeight();
             }
-            if maxwidth
-                < (self.items.get(item).unwrap()).borrow_mut()
-                    .getLength()
-            {
-                maxwidth = (self.items.get(item).unwrap()).borrow_mut()
-                    .getLength();
+            if maxwidth < (self.items.get(item).unwrap()).borrow().getLength() {
+                maxwidth = (self.items.get(item).unwrap()).borrow().getLength();
             }
         }
-        return returnstring;
+        print!("ret row: '{}'\n\r", returnstring.clone());
+        if self.effect.is_none() {
+            return returnstring;
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(returnstring);
+        }
     }
 
     pub fn setGap(&mut self, gap: i32) {
@@ -468,20 +540,12 @@ impl Row {
     }
 
     pub fn getHeight(&self) -> i32 {
-        let mut maxheight = 0;
-        for item in self.items.iter() {
-            if maxheight < item.borrow_mut().getHeight() {
-                maxheight = item.borrow_mut().getHeight()
-            }
-        }
+        let maxheight = self.items.iter().map(|x| x.borrow().getHeight()).max().unwrap();
         return maxheight;
     }
 
     pub fn getLength(&self) -> i32 {
-        let mut width = 0;
-        for item in self.items.iter() {
-            width += item.borrow_mut().getLength()
-        }
+        let mut width = self.items.iter().map(|x| x.borrow_mut().getLength()).sum();
         width += self.gap * (self.items.len() as i32 - 1);
         return width;
     }
@@ -551,7 +615,11 @@ impl Column {
         let maxwidth = self.getLength();
         for index in 0..self.items.len() {
             let item = self.items.get(index).unwrap().borrow();
-            returnstring = concatenate(returnstring, padToWidth(item.toString(), maxwidth));
+            let mut inbetweenitem = item.toString();
+            if self.effect.is_some() {
+                inbetweenitem = self.effect.clone().unwrap().applyEffectInner(inbetweenitem.clone());
+            }
+            returnstring = concatenate(returnstring, padToWidth(inbetweenitem, maxwidth));
             if index != self.items.len() - 1 {
                 returnstring += "\n\r";
                 for i in 0..self.gap {
@@ -559,14 +627,15 @@ impl Column {
                 }
             }
         }
-        return returnstring;
+        if self.effect.is_none() {
+            return returnstring;
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(returnstring);
+        }
     }
 
     pub fn getHeight(&self) -> i32 {
-        let mut height = 0;
-        for item in self.items.iter() {
-            height += item.borrow().getHeight()
-        }
+        let mut height = self.items.iter().map(|x| x.borrow().getHeight()).sum();
         height += self.gap * self.items.len() as i32;
         return height;
     }
@@ -636,34 +705,21 @@ impl Input {
 
     pub fn toString(&self) -> String {
         let mut tempholder = self.wrapText();
-        return padToHeight(
-            padToWidth(tempholder.clone(), self.length),
+        let mut inbetweenitem = tempholder.clone();
+        let (adjustedheight, _) = self.getAdjustedSize(tempholder);
+        let returnstring = padToHeight(
+            padToWidth(inbetweenitem, self.length),
             self.length,
-            self.height - self.getAdjustedHeight(tempholder),
+            self.height - adjustedheight,
         );
+        if self.effect.is_none() {
+            return returnstring;
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(self.effect.clone().unwrap().applyEffectOuter(returnstring));
+        }
     }
 
-    fn getAdjustedLength(&self, adjstr: String) -> i32 {
-        let mut resultstring = "".to_string();
-        let textsplit = adjstr.split("\n\r");
-        let mut maxlen: i32 = 0;
-        for line in textsplit.clone() {
-            if line.chars().count() as i32 > maxlen {
-                maxlen = line.chars().count() as i32;
-            }
-        }
-        let mut i = 0;
-        for line in textsplit.clone() {
-            resultstring.push_str(&padToWidth(line.to_string(), maxlen));
-            if i != textsplit.clone().count() - 1 {
-                resultstring.push_str("\n\r");
-            }
-            i += 1;
-        }
-        return maxlen;
-    }
-
-    fn getAdjustedHeight(&self, adjstr: String) -> i32 {
+    fn getAdjustedSize(&self, adjstr: String) -> (i32, i32) {
         let mut resultstring = "".to_string();
         let textsplit = adjstr.split("\n\r");
         let mut maxlen: i32 = 0;
@@ -682,7 +738,7 @@ impl Input {
             height += 1;
             i += 1;
         }
-        return height;
+        return (height, maxlen);
     }
 
     pub fn getLength(&self) -> i32 {
@@ -741,11 +797,12 @@ pub struct Selector {
     down: Option<Rc<RefCell<objecttypes>>>,
     isactive: bool,
     wasjustset: bool,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    activeeffect: Option<Effect>
 }
 
 impl Selector {
-    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>, isactive: Option<bool>, effect: Option<Effect>) -> Selector {
+    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>, isactive: Option<bool>, effect: Option<Effect>, activeeffect: Option<Effect>) -> Selector {
         return Selector {
             item: item.unwrap(),
             right: right,
@@ -754,7 +811,8 @@ impl Selector {
             down: down,
             isactive: isactive.unwrap_or(false),
             wasjustset: false,
-            effect: effect
+            effect: effect,
+            activeeffect: activeeffect
         };
     }
     pub fn setElements(&mut self, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>) {
@@ -764,7 +822,14 @@ impl Selector {
         self.down = down; 
     }
     pub fn toString(&self) -> String {
-        self.item.as_ref().borrow().toString()
+        let returnstring = self.item.as_ref().borrow().toString();
+        if (self.effect.is_none() && !self.isactive) || (self.activeeffect.is_none() && self.isactive)  {
+            return returnstring;
+        } else if self.isactive {
+            return self.activeeffect.clone().unwrap().applyEffectOuter(self.activeeffect.clone().unwrap().applyEffectInner(returnstring));
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(self.effect.clone().unwrap().applyEffectInner(returnstring));
+        }
     }
 
     pub fn getHeight(&self) -> i32 {
