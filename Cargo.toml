@@ -9,6 +9,7 @@ readme = "README.md"
 include = [
     "**/*.rs"
 ]
+description = "A rust tui library to allow for html like decleration of gui"
 
 [profile.release]
 debug = true
