@@ -13,7 +13,7 @@ use crossterm::terminal::disable_raw_mode;
 use crate::xmlconverter::parseDocument;
 
 fn main() {
-    let mut root = parseDocument("./gui.xml");
+    let (mut root, mut signals) = parseDocument("./gui.xml");
     let duration = Duration::from_millis(100);
     let (sendint, recvint): (Sender<i32>, Receiver<i32>) = channel();
     let (sendevent, recvevent): (Sender<EventQueue>, Receiver<EventQueue>) = channel();

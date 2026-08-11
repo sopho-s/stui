@@ -11,6 +11,7 @@ pub enum event {
 pub enum Key {
     BASICKEY(String),
     ESCAPEKEY(String),
+    ENTERKEY(String),
     DELETEKEY(String),
     MOVEMENTKEY(String),
 }

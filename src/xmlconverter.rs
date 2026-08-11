@@ -9,6 +9,8 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::fs;
 use std::vec;
+use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::channel;
 
 fn linkSelectors(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorlist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorwants: Rc<RefCell<Vec<Vec<i32>>>>) {
     for i in 0..selectorwants.as_ref().borrow().len() {
@@ -31,7 +33,7 @@ fn linkSelectors(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefC
     }
 }
 
-fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorlist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorwants: Rc<RefCell<Vec<Vec<i32>>>>) -> Rc<RefCell<objecttypes>> {
+fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorlist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, selectorwants: Rc<RefCell<Vec<Vec<i32>>>>, signals: Rc<RefCell<Vec<(String, Receiver<(String, String)>)>>>) -> Rc<RefCell<objecttypes>> {
     for node in doc.descendants().filter(|n| n.is_element()) {
         let colour;
         if node.attribute("colour").unwrap_or("") != "" {
@@ -43,7 +45,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
         match node.tag_name().name() {
             "Box" => {
                 let object = Box!(
-                    parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants)),
+                    parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&signals)),
                     node.attribute("hasborder").unwrap_or("false") == "true",
                     node.attribute("paddingleft").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("paddingright").unwrap_or("0").parse::<i32>().unwrap(),
@@ -75,7 +77,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let mut vec = vec![];
                 for item in node.children() {
                     if item.is_element() {
-                        vec.push(parseXML(item, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants)));
+                        vec.push(parseXML(item, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&signals)));
                     }
                 }
                 let object = objects::objecttypes::ROW(
@@ -96,7 +98,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let mut vec = vec![];
                 for item in node.children() {
                     if item.is_element() {
-                        vec.push(parseXML(item, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants)));
+                        vec.push(parseXML(item, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&signals)));
                     }
                 }
                 let object = objects::objecttypes::COLUMN(
@@ -114,10 +116,12 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 return thisobject;
             },
             "Input" => {
+                let name = node.attribute("name").unwrap_or("").to_owned();
                 let object = Input!(node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("placeholder").unwrap_or("").to_owned(),
-                    effect
+                    effect,
+                    name
                 );
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
@@ -136,7 +140,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let activeeffect = Some(Effect::new(activecolour));
                 let object = objects::objecttypes::SELECTOR(
                     objects::Selector::new(
-                        Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants))),
+                        Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&signals))),
                         None,
                         None,
                         None,
@@ -160,13 +164,27 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 }
                 return thisobject;
             },
+            "Form" => {
+                let name = node.attribute("name").unwrap_or("").to_owned();
+                let (sender, reciever) = channel::<(String, String)>();
+                let object = objects::objecttypes::FORM(
+                    objects::Form::new(
+                        Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&signals))),
+                        sender,
+                        name.clone()
+                    )
+                );
+                signals.as_ref().borrow_mut().push((name, reciever));
+                let thisobject = Rc::new(RefCell::new(object));
+                return thisobject;
+            },
             _ => panic!("Invalid XML")
         }
     }
     panic!("no nodes");
 }
 
-pub fn parseDocument(filename: &str) -> objecttypes {
+pub fn parseDocument(filename: &str) -> (objecttypes, Rc<RefCell<Vec<(String, Receiver<(String, String)>)>>>) {
     let document = fs::read_to_string(filename).unwrap();
     let doc = roxmltree::Document::parse(&document).unwrap();
     let root = doc.root_element();
@@ -174,7 +192,8 @@ pub fn parseDocument(filename: &str) -> objecttypes {
     let nodelist = Rc::new(RefCell::new(vec![]));
     let selectorlist = Rc::new(RefCell::new(vec![]));
     let selectorwants = Rc::new(RefCell::new(vec![]));
-    let parsedroot = parseXML(root, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants));
+    let signals = Rc::new(RefCell::new(vec![]));
+    let parsedroot = parseXML(root, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&signals));
     linkSelectors(idlist, nodelist, selectorlist, selectorwants);
-    return (*parsedroot.as_ref().borrow()).clone()
+    return ((*parsedroot.as_ref().borrow()).clone(), signals);
 }

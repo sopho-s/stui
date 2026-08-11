@@ -5,6 +5,7 @@ use util::createNLengthStringNL;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::eventmanager::Key;
+use std::sync::mpsc::Sender;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -667,7 +668,8 @@ pub struct Input {
     height: i32,
     text: String,
     placeholder: String,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String,
 }
 
 #[derive(Clone, Debug)]
@@ -679,19 +681,20 @@ pub struct InputChange {
 
 #[macro_export]
 macro_rules! Input {
-    ($length:expr, $height:expr, $placeholder:expr, $effect:expr) => {
-        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder), $effect))
+    ($length:expr, $height:expr, $placeholder:expr, $effect:expr, $name:expr) => {
+        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder), $effect, $name))
     };
 }
 
 impl Input {
-    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>, effect: Option<Effect>) -> Input {
+    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>, effect: Option<Effect>, name: String) -> Input {
         return Input {
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
             text: "".to_string(),
             placeholder: placeholder.clone().unwrap_or("".to_string()),
-            effect: effect
+            effect: effect,
+            name: name
         };
     }
 
@@ -894,6 +897,60 @@ impl Selector {
     }
 }
 
+
+
+#[macro_export]
+macro_rules! Form {
+    ($item:expr, $signal:expr, $name:expr) => {
+        objects::objecttypes::FORM(objects::Form::new(
+            $item,
+            $signal,
+            $name
+        ))
+    };
+}
+
+#[derive(Clone, Debug)]
+pub struct Form {
+    item: Rc<RefCell<objecttypes>>,
+    signal: Sender<(String, String)>,
+    name: String,
+}
+
+impl Form {
+    pub fn new(
+        item: Option<Rc<RefCell<objecttypes>>>,
+        signal: Sender<(String, String)>,
+        name: String,
+    ) -> Form {
+        return Form {
+            item: item.unwrap(),
+            signal: signal,
+            name: name,
+        };
+    }
+    pub fn toString(&self) -> String {
+        return self.item.as_ref().borrow().toString()
+    }
+
+    pub fn getHeight(&self) -> i32 {
+        self.item.borrow_mut().getHeight()
+    }
+    pub fn getLength(&self) -> i32 {
+        self.item.borrow_mut().getLength()
+    }
+
+    pub fn newKeyboardInput(&mut self, input: Key) {
+        match input {
+            Key::ENTERKEY(_) => {;},
+            _ => {self.item.borrow_mut().newKeyboardInput(input);},
+        }
+    }
+    pub fn Reset(&mut self) {
+        self.item.borrow_mut().Reset();
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum objecttypes {
     TEXT(Text),
@@ -902,6 +959,7 @@ pub enum objecttypes {
     COLUMN(Column),
     INPUT(Input),
     SELECTOR(Selector),
+    FORM(Form),
 }
 
 impl objecttypes {
@@ -913,6 +971,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.toString(),
             objecttypes::INPUT(c) => c.toString(),
             objecttypes::SELECTOR(c) => c.toString(),
+            objecttypes::FORM(c) => c.toString(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -925,6 +984,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.getHeight(),
             objecttypes::INPUT(c) => c.getHeight(),
             objecttypes::SELECTOR(c) => c.getHeight(),
+            objecttypes::FORM(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -937,6 +997,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.getLength(),
             objecttypes::INPUT(c) => c.getLength(),
             objecttypes::SELECTOR(c) => c.getLength(),
+            objecttypes::FORM(c) => c.getLength(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -949,6 +1010,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.newKeyboardInput(input),
             objecttypes::INPUT(c) => c.newKeyboardInput(input),
             objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
+            objecttypes::FORM(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
         }
     }
@@ -974,6 +1036,7 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.Reset(),
             objecttypes::INPUT(c) => c.Reset(),
             objecttypes::SELECTOR(c) => c.Reset(),
+            objecttypes::FORM(c) => c.Reset(),
             _ => panic!("method on object not supported"),
         }
     }
