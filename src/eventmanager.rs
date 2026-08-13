@@ -14,6 +14,7 @@ pub enum Key {
     ENTERKEY(String),
     DELETEKEY(String),
     MOVEMENTKEY(String),
+    INTERACTION(String),
 }
 
 #[derive(Clone, Debug)]
@@ -75,7 +76,7 @@ pub fn eventListener(rx: Receiver<i32>, tx: Sender<EventQueue>) {
                         eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("right".to_string())))
                     }
                     KeyCode::Enter => {
-                        eventqueue.push(event::KEYEVENT(Key::ESCAPEKEY("\n".to_string())))
+                        eventqueue.push(event::KEYEVENT(Key::ENTERKEY("\n".to_string())))
                     }
                     KeyCode::Delete => {
                         eventqueue.push(event::KEYEVENT(Key::DELETEKEY("delete".to_string())))
