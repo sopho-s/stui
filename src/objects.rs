@@ -5,6 +5,7 @@ use util::createNLengthStringNL;
 use std::rc::Rc;
 use std::cell::RefCell;
 use crate::eventmanager::Key;
+use std::sync::mpsc::Sender;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -131,7 +132,6 @@ impl Colour {
             let r = u8::from_str_radix(&colour[1..3], 16).unwrap();
             let g = u8::from_str_radix(&colour[3..5], 16).unwrap();
             let b = u8::from_str_radix(&colour[5..7], 16).unwrap();
-            print!("{:?},{:?},{:?}\n\r", r.clone(), g.clone(), b.clone());
             return Colour {
                 r : r,
                 g : g,
@@ -301,6 +301,9 @@ impl Text {
     pub fn Reset(&mut self) {
         ;
     }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return None;
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -454,6 +457,9 @@ impl Box {
     pub fn Reset(&mut self) {
         self.item.borrow_mut().Reset();
     }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return self.item.as_ref().borrow_mut().getFormData();
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -523,7 +529,6 @@ impl Row {
                 maxwidth = (self.items.get(item).unwrap()).borrow().getLength();
             }
         }
-        print!("ret row: '{}'\n\r", returnstring.clone());
         if self.effect.is_none() {
             return returnstring;
         } else {
@@ -560,6 +565,22 @@ impl Row {
         for item in self.items.clone() {
             item.borrow_mut().Reset();
         }
+    }
+    pub fn getFormData(&mut self) -> Option<String> {
+        let mut returnstring = "".to_owned();
+        for i in 0..self.items.len() {
+            let result = self.items[i].as_ref().borrow_mut().getFormData();
+            if !result.is_none() {
+                if returnstring != "".to_owned() {
+                    returnstring += "&";
+                }
+                returnstring += &(result.unwrap());
+            }
+        }
+        if returnstring == "".to_owned() {
+            return None;
+        }
+        return Some(returnstring);
     }
 }
 
@@ -660,6 +681,22 @@ impl Column {
             item.borrow_mut().Reset();
         }
     }
+    pub fn getFormData(&mut self) -> Option<String> {
+        let mut returnstring = "".to_owned();
+        for i in 0..self.items.len() {
+            let result = self.items[i].as_ref().borrow_mut().getFormData();
+            if !result.is_none() {
+                if returnstring != "".to_owned() {
+                    returnstring += "&";
+                }
+                returnstring += &(result.unwrap());
+            }
+        }
+        if returnstring == "".to_owned() {
+            return None;
+        }
+        return Some(returnstring);
+    }
 }
 #[derive(Clone, Debug)]
 pub struct Input {
@@ -667,7 +704,8 @@ pub struct Input {
     height: i32,
     text: String,
     placeholder: String,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String,
 }
 
 #[derive(Clone, Debug)]
@@ -679,19 +717,20 @@ pub struct InputChange {
 
 #[macro_export]
 macro_rules! Input {
-    ($length:expr, $height:expr, $placeholder:expr, $effect:expr) => {
-        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder), $effect))
+    ($length:expr, $height:expr, $placeholder:expr, $effect:expr, $name:expr) => {
+        objects::objecttypes::INPUT(objects::Input::new(Some($length), Some($height), Some($placeholder), $effect, $name))
     };
 }
 
 impl Input {
-    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>, effect: Option<Effect>) -> Input {
+    pub fn new(length: Option<i32>, height: Option<i32>, placeholder: Option<String>, effect: Option<Effect>, name: String) -> Input {
         return Input {
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
             text: "".to_string(),
             placeholder: placeholder.clone().unwrap_or("".to_string()),
-            effect: effect
+            effect: effect,
+            name: name
         };
     }
 
@@ -785,6 +824,9 @@ impl Input {
     }
     pub fn Reset(&mut self) {
         ;
+    }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return Some(((self.name.clone() + ":") + &self.text));
     }
 }
 
@@ -892,6 +934,182 @@ impl Selector {
         self.wasjustset = false;
         self.item.as_ref().borrow_mut().Reset()
     }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return self.item.as_ref().borrow_mut().getFormData();
+    }
+}
+
+
+
+#[macro_export]
+macro_rules! Form {
+    ($item:expr, $signal:expr, $name:expr) => {
+        objects::objecttypes::FORM(objects::Form::new(
+            $item,
+            $signal,
+            $name
+        ))
+    };
+}
+
+#[derive(Clone, Debug)]
+pub struct Form {
+    item: Rc<RefCell<objecttypes>>,
+    signal: Sender<(String, String)>,
+    name: String,
+}
+
+impl Form {
+    pub fn new(
+        item: Option<Rc<RefCell<objecttypes>>>,
+        signal: Sender<(String, String)>,
+        name: String,
+    ) -> Form {
+        return Form {
+            item: item.unwrap(),
+            signal: signal,
+            name: name,
+        };
+    }
+    pub fn toString(&self) -> String {
+        return self.item.as_ref().borrow().toString()
+    }
+
+    pub fn getHeight(&self) -> i32 {
+        self.item.borrow_mut().getHeight()
+    }
+    pub fn getLength(&self) -> i32 {
+        self.item.borrow_mut().getLength()
+    }
+
+    pub fn newKeyboardInput(&mut self, input: Key) {
+        match input {
+            Key::INTERACTION(_) => {self.signal.send((self.name.clone(), self.item.as_ref().borrow_mut().getFormData().unwrap_or("".to_owned())));},
+            _ => {self.item.borrow_mut().newKeyboardInput(input);},
+        }
+    }
+    pub fn Reset(&mut self) {
+        self.item.borrow_mut().Reset();
+    }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return self.item.as_ref().borrow_mut().getFormData();
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Button {
+    text: String,
+    length: i32,
+    height: i32,
+    item: Option<Rc<RefCell<objecttypes>>>,
+    effect: Option<Effect>
+}
+
+#[derive(Clone, Debug)]
+pub struct ButtonChange {
+    text: String,
+    length: i32,
+    height: i32,
+}
+
+#[macro_export]
+macro_rules! Button {
+    ($text:expr, $length:expr, $height:expr, $item:expr, $effect:expr) => {
+        objects::objecttypes::BUTTON(crate::objects::Button::new(Some($text), Some($length), Some($height), $item, Some($effect)))
+    };
+}
+
+impl Button {
+    pub fn new(text: Option<String>, length: Option<i32>, height: Option<i32>, item: Option<Rc<RefCell<objecttypes>>>, effect: Option<Effect>) -> Button {
+        return Button {
+            text: text.unwrap_or("".to_string()),
+            length: length.unwrap_or(0),
+            height: height.unwrap_or(0),
+            item: item,
+            effect: effect
+        };
+    }
+    pub fn toString(&self) -> String {
+        let mut tempholder = Text::new(None, None, None, None);
+        tempholder.changeText(self.wrapText());
+
+        let returnstring = padToHeight(
+            padToWidth(tempholder.clone().text, self.length),
+            self.length,
+            self.height - tempholder.getHeight(),
+        );
+        if self.effect.is_none() {
+            return returnstring;
+        } else {
+            return self.effect.clone().unwrap().applyEffectOuter(self.effect.clone().unwrap().applyEffectInner(returnstring));
+        }
+    }
+    fn wrapText(&self) -> String {
+        let mut _text = self.text.clone();
+        if _text.chars().count() as i32 <= self.length {
+            return _text;
+        }
+        let mut returnstring = "".to_string();
+        let mut currheight = 0;
+        while _text.chars().count() as i32 > self.length {
+            let left = _text.split_off(self.length as usize);
+            currheight += 1;
+            if currheight == self.height {
+                returnstring.push_str(&_text);
+                return returnstring;
+            } else {
+                returnstring.push_str(&concatenate(_text, "\n\r".to_string()));
+            }
+            _text = left;
+        }
+        returnstring += &_text;
+        return returnstring;
+    }
+
+    pub fn changeText(&mut self, text: String) {
+        let mut resultstring = "".to_string();
+        let textsplit = text.split("\n\r");
+        let mut maxlen: i32 = 0;
+        for line in textsplit.clone() {
+            if line.chars().count() as i32 > maxlen {
+                maxlen = line.chars().count() as i32;
+            }
+        }
+        let mut i = 0;
+        for line in textsplit.clone() {
+            resultstring.push_str(&padToWidth(line.to_string(), maxlen));
+            if i != textsplit.clone().count() - 1 {
+                resultstring.push_str("\n\r");
+            }
+            self.height += 1;
+            i += 1;
+        }
+        self.text = resultstring;
+        self.length = maxlen;
+    }
+    pub fn getHeight(&self) -> i32 {
+        self.height
+    }
+    pub fn getLength(&self) -> i32 {
+        self.length
+    }
+
+    pub fn newKeyboardInput(&mut self, input: Key) {
+        match input {
+            Key::ENTERKEY(_) => {self.item.clone().unwrap().borrow_mut().newKeyboardInput(Key::INTERACTION("button".to_owned()))},
+            _ => {;},
+        }
+        
+    }
+    pub fn Reset(&mut self) {
+        ;
+    }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return None;
+    }
+    pub fn setElement(&mut self, item: Option<Rc<RefCell<objecttypes>>>) {
+        self.item = item;
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -902,6 +1120,8 @@ pub enum objecttypes {
     COLUMN(Column),
     INPUT(Input),
     SELECTOR(Selector),
+    FORM(Form),
+    BUTTON(Button),
 }
 
 impl objecttypes {
@@ -913,6 +1133,8 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.toString(),
             objecttypes::INPUT(c) => c.toString(),
             objecttypes::SELECTOR(c) => c.toString(),
+            objecttypes::FORM(c) => c.toString(),
+            objecttypes::BUTTON(c) => c.toString(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -925,6 +1147,8 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.getHeight(),
             objecttypes::INPUT(c) => c.getHeight(),
             objecttypes::SELECTOR(c) => c.getHeight(),
+            objecttypes::FORM(c) => c.getHeight(),
+            objecttypes::BUTTON(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -937,6 +1161,8 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.getLength(),
             objecttypes::INPUT(c) => c.getLength(),
             objecttypes::SELECTOR(c) => c.getLength(),
+            objecttypes::FORM(c) => c.getLength(),
+            objecttypes::BUTTON(c) => c.getLength(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -949,6 +1175,8 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.newKeyboardInput(input),
             objecttypes::INPUT(c) => c.newKeyboardInput(input),
             objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
+            objecttypes::FORM(c) => c.newKeyboardInput(input),
+            objecttypes::BUTTON(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
         }
     }
@@ -966,6 +1194,27 @@ impl objecttypes {
             _ => panic!("method on object not supported"),
         }
     }
+
+    pub fn convertToButton(&mut self) -> &mut Button {
+        match self {
+            objecttypes::BUTTON(c) => c,
+            _ => panic!("method on object not supported"),
+        }
+    }
+
+    pub fn getFormData(&mut self) -> Option<String> {
+        match self {
+            objecttypes::TEXT(c) => None,
+            objecttypes::BOX(c) => c.getFormData(),
+            objecttypes::ROW(c) => c.getFormData(),
+            objecttypes::COLUMN(c) => c.getFormData(),
+            objecttypes::INPUT(c) => c.getFormData(),
+            objecttypes::SELECTOR(c) => c.getFormData(),
+            objecttypes::FORM(c) => c.getFormData(),
+            objecttypes::BUTTON(c) => c.getFormData(),
+            _ => panic!("method on object not supported"),
+        }
+    }
     pub fn Reset(&mut self) {
         match self {
             objecttypes::TEXT(c) => c.Reset(),
@@ -974,6 +1223,8 @@ impl objecttypes {
             objecttypes::COLUMN(c) => c.Reset(),
             objecttypes::INPUT(c) => c.Reset(),
             objecttypes::SELECTOR(c) => c.Reset(),
+            objecttypes::FORM(c) => c.Reset(),
+            objecttypes::BUTTON(c) => c.Reset(),
             _ => panic!("method on object not supported"),
         }
     }
