@@ -36,7 +36,14 @@ fn linkSelectors(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefC
 
 fn linkButtons(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, buttonlist: Rc<RefCell<Vec<Rc<RefCell<objecttypes>>>>>, buttonwants: Rc<RefCell<Vec<i32>>>) {
     for i in 0..buttonwants.as_ref().borrow().len() {
-
+        let refer = &buttonlist.as_ref().borrow_mut()[i];
+        let buttonwant = buttonwants.as_ref().borrow()[i];
+        print!("{:?}\n", idlist);
+        print!("{:?}\n", buttonwant);
+        let currindex = idlist.as_ref().borrow().iter().position(|&r| r == buttonwant).unwrap();
+        let mut refer2 = refer.as_ref().borrow_mut();
+        let button = refer2.convertToButton();
+        button.setElement(Some(Rc::clone(&nodelist.as_ref().borrow()[currindex])));
     }
 }
 
@@ -183,6 +190,10 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 );
                 signals.as_ref().borrow_mut().push((name, reciever));
                 let thisobject = Rc::new(RefCell::new(object));
+                if node.attribute("id").unwrap_or("-1") != "-1" {
+                    idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
+                    nodelist.as_ref().borrow_mut().push(Rc::clone(&thisobject));
+                }
                 return thisobject;
             },
             "Button" => {

@@ -984,7 +984,7 @@ impl Form {
 
     pub fn newKeyboardInput(&mut self, input: Key) {
         match input {
-            Key::ENTERKEY(_) => {self.signal.send((self.name.clone(), self.item.as_ref().borrow_mut().getFormData().unwrap_or("".to_owned())));},
+            Key::INTERACTION(_) => {self.signal.send((self.name.clone(), self.item.as_ref().borrow_mut().getFormData().unwrap_or("".to_owned())));},
             _ => {self.item.borrow_mut().newKeyboardInput(input);},
         }
     }
@@ -1097,7 +1097,7 @@ impl Button {
     pub fn newKeyboardInput(&mut self, input: Key) {
         match input {
             Key::ENTERKEY(_) => {self.item.clone().unwrap().borrow_mut().newKeyboardInput(Key::INTERACTION("button".to_owned()))},
-            _ => {self.item.clone().unwrap().borrow_mut().newKeyboardInput(input);},
+            _ => {;},
         }
         
     }
@@ -1191,6 +1191,13 @@ impl objecttypes {
     pub fn convertToSelector(&mut self) -> &mut Selector {
         match self {
             objecttypes::SELECTOR(c) => c,
+            _ => panic!("method on object not supported"),
+        }
+    }
+
+    pub fn convertToButton(&mut self) -> &mut Button {
+        match self {
+            objecttypes::BUTTON(c) => c,
             _ => panic!("method on object not supported"),
         }
     }
