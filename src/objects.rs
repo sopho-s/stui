@@ -510,6 +510,9 @@ impl Row {
         returnstring = (self.items.get(0).unwrap()).borrow().toString();
         for item in 1..self.items.len() {
             let mut inbetweenitem = self.items[item].clone().as_ref().borrow().toString();
+            if inbetweenitem == "\x00".to_owned() {
+                continue;
+            }
             if self.effect.is_some() {
                 inbetweenitem = self.effect.clone().unwrap().applyEffectInner(inbetweenitem.clone());
             }
@@ -637,6 +640,9 @@ impl Column {
         for index in 0..self.items.len() {
             let item = self.items.get(index).unwrap().borrow();
             let mut inbetweenitem = item.toString();
+            if inbetweenitem == "\x00".to_owned() {
+                continue;
+            }
             if self.effect.is_some() {
                 inbetweenitem = self.effect.clone().unwrap().applyEffectInner(inbetweenitem.clone());
             }
@@ -939,8 +945,6 @@ impl Selector {
     }
 }
 
-
-
 #[macro_export]
 macro_rules! Form {
     ($item:expr, $signal:expr, $name:expr) => {
@@ -980,6 +984,10 @@ impl Form {
     }
     pub fn getLength(&self) -> i32 {
         self.item.borrow_mut().getLength()
+    }
+
+    pub fn getName(&self) -> String {
+        self.name.clone()
     }
 
     pub fn newKeyboardInput(&mut self, input: Key) {
@@ -1112,6 +1120,50 @@ impl Button {
     }
 }
 
+#[macro_export]
+macro_rules! Hidden {
+    ($item:expr) => {
+        objects::objecttypes::HIDDEN(objects::Hidden::new(
+            $item
+        ))
+    };
+}
+
+#[derive(Clone, Debug)]
+pub struct Hidden {
+    item: Rc<RefCell<objecttypes>>
+}
+
+impl Hidden {
+    pub fn new(
+        item: Option<Rc<RefCell<objecttypes>>>
+    ) -> Hidden {
+        return Hidden {
+            item: item.unwrap()
+        };
+    }
+    pub fn toString(&self) -> String {
+        return "\x00".to_owned();
+    }
+
+    pub fn getHeight(&self) -> i32 {
+        0
+    }
+    pub fn getLength(&self) -> i32 {
+        0
+    }
+
+    pub fn newKeyboardInput(&mut self, input: Key) {
+        self.item.as_ref().borrow_mut().newKeyboardInput(input);
+    }
+    pub fn Reset(&mut self) {
+        self.item.as_ref().borrow_mut().Reset();
+    }
+    pub fn getFormData(&mut self) -> Option<String> {
+        return self.item.as_ref().borrow_mut().getFormData();
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum objecttypes {
     TEXT(Text),
@@ -1122,6 +1174,7 @@ pub enum objecttypes {
     SELECTOR(Selector),
     FORM(Form),
     BUTTON(Button),
+    HIDDEN(Hidden),
 }
 
 impl objecttypes {
@@ -1135,6 +1188,7 @@ impl objecttypes {
             objecttypes::SELECTOR(c) => c.toString(),
             objecttypes::FORM(c) => c.toString(),
             objecttypes::BUTTON(c) => c.toString(),
+            objecttypes::HIDDEN(c) => c.toString(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1149,6 +1203,7 @@ impl objecttypes {
             objecttypes::SELECTOR(c) => c.getHeight(),
             objecttypes::FORM(c) => c.getHeight(),
             objecttypes::BUTTON(c) => c.getHeight(),
+            objecttypes::HIDDEN(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1163,6 +1218,7 @@ impl objecttypes {
             objecttypes::SELECTOR(c) => c.getLength(),
             objecttypes::FORM(c) => c.getLength(),
             objecttypes::BUTTON(c) => c.getLength(),
+            objecttypes::HIDDEN(c) => c.getLength(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1177,6 +1233,7 @@ impl objecttypes {
             objecttypes::SELECTOR(c) => c.newKeyboardInput(input),
             objecttypes::FORM(c) => c.newKeyboardInput(input),
             objecttypes::BUTTON(c) => c.newKeyboardInput(input),
+            objecttypes::HIDDEN(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1212,9 +1269,18 @@ impl objecttypes {
             objecttypes::SELECTOR(c) => c.getFormData(),
             objecttypes::FORM(c) => c.getFormData(),
             objecttypes::BUTTON(c) => c.getFormData(),
+            objecttypes::HIDDEN(c) => c.getFormData(),
             _ => panic!("method on object not supported"),
         }
     }
+
+    pub fn getName(&mut self) -> String {
+        match self {
+            objecttypes::FORM(c) => c.getName(),
+            _ => "".to_owned(),
+        }
+    }
+
     pub fn Reset(&mut self) {
         match self {
             objecttypes::TEXT(c) => c.Reset(),
@@ -1225,6 +1291,7 @@ impl objecttypes {
             objecttypes::SELECTOR(c) => c.Reset(),
             objecttypes::FORM(c) => c.Reset(),
             objecttypes::BUTTON(c) => c.Reset(),
+            objecttypes::HIDDEN(c) => c.Reset(),
             _ => panic!("method on object not supported"),
         }
     }
