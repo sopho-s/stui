@@ -216,6 +216,15 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 }
                 return thisobject;
             },
+            "Hidden" => {
+                let object = objects::objecttypes::HIDDEN(
+                    objects::Hidden::new(
+                        Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals)))
+                    )
+                );
+                let thisobject = Rc::new(RefCell::new(object));
+                return thisobject;
+            },
             _ => panic!("Invalid XML")
         }
     }

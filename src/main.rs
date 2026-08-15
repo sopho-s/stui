@@ -47,8 +47,9 @@ fn main() {
         print!("{}", root.getResetString());
         for (name, signal) in signals.as_ref().borrow().iter() {
             let (formname, formdata) = signal.try_recv().unwrap_or(("".to_owned(), "".to_owned()));
-            if formdata.len() > 0 {
-                print!("{:?}", formdata);
+            if formname.len() > 0 {
+                print!("'{:?}'", formdata);
+                print!("'{:?}'", formname);
             }
         }
     }
