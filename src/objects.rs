@@ -6,6 +6,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use crate::eventmanager::Key;
 use std::sync::mpsc::Sender;
+use core::f64;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -1164,6 +1165,85 @@ impl Hidden {
     }
 }
 
+#[macro_export]
+macro_rules! Progress {
+    ($min:expr, $max:expr, $height:expr, $length:expr, $startval:expr) => {
+        objects::objecttypes::Progress(objects::Hidden::new(
+            $min,
+            $max,
+            $height,
+            $length,
+            $preset,
+            Some($startval)
+        ))
+    };
+}
+
+#[derive(Clone, Debug)]
+pub struct Progress {
+    min: f32,
+    max: f32,
+    height: i32,
+    length: i32,
+    preset: i8,
+    value: f32,
+}
+
+impl Progress {
+    pub fn new(
+        min: f32, max: f32, height: i32, length: i32, preset: i8, startval: Option<f32>
+    ) -> Progress {
+        return Progress {
+            min: min,
+            max: max,
+            height: height,
+            length: length,
+            preset: preset,
+            value: startval.unwrap_or(min),
+        };
+    }
+
+    pub fn toString(&self) -> String {
+        let presetfull = ["█▉▊▋▌▍▎▏ ", "█▓▒░ ", "█▇▆▅▄▃▂▁ ", "⣿⣷⣶⣦⣤⣄⣀⡀ "];
+        let filling = presetfull[self.preset as usize];
+        let barsize = (self.max - self.min) as f32 / (self.length as f32);
+        let mut tmpvalue = self.value;
+        if self.value > self.max {
+            tmpvalue = self.max;
+        }
+        let mut bar = "".to_owned();
+        while tmpvalue > 0 as f32 {
+            if tmpvalue > barsize {
+                bar.push(filling.chars().nth(0 as usize).unwrap());
+                tmpvalue -= barsize;
+            } else {
+                let len = (filling.chars().count() - 1);
+                bar.push(filling.chars().nth((len as f32 - (tmpvalue / barsize * (len as f32)).floor() - 1.0) as usize).unwrap());
+                tmpvalue = 0.0;
+            }
+        }
+        bar = padToWidth(bar, self.length);
+        return createNLengthStringNL(self.height, &bar);
+    }
+
+    pub fn getHeight(&self) -> i32 {
+        self.height
+    }
+    pub fn getLength(&self) -> i32 {
+        self.length
+    }
+
+    pub fn newKeyboardInput(&mut self, input: Key) {
+        ;
+    }
+    pub fn Reset(&mut self) {
+        ;
+    }
+    pub fn getFormData(&mut self) -> Option<String> {
+        None
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum objecttypes {
     TEXT(Text),
@@ -1175,6 +1255,7 @@ pub enum objecttypes {
     FORM(Form),
     BUTTON(Button),
     HIDDEN(Hidden),
+    PROGRESS(Progress),
 }
 
 impl objecttypes {
@@ -1189,6 +1270,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.toString(),
             objecttypes::BUTTON(c) => c.toString(),
             objecttypes::HIDDEN(c) => c.toString(),
+            objecttypes::PROGRESS(c) => c.toString(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1204,6 +1286,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.getHeight(),
             objecttypes::BUTTON(c) => c.getHeight(),
             objecttypes::HIDDEN(c) => c.getHeight(),
+            objecttypes::PROGRESS(c) => c.getHeight(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1219,6 +1302,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.getLength(),
             objecttypes::BUTTON(c) => c.getLength(),
             objecttypes::HIDDEN(c) => c.getLength(),
+            objecttypes::PROGRESS(c) => c.getLength(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1234,6 +1318,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.newKeyboardInput(input),
             objecttypes::BUTTON(c) => c.newKeyboardInput(input),
             objecttypes::HIDDEN(c) => c.newKeyboardInput(input),
+            objecttypes::PROGRESS(c) => c.newKeyboardInput(input),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1270,6 +1355,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.getFormData(),
             objecttypes::BUTTON(c) => c.getFormData(),
             objecttypes::HIDDEN(c) => c.getFormData(),
+            objecttypes::PROGRESS(c) => c.getFormData(),
             _ => panic!("method on object not supported"),
         }
     }
@@ -1292,6 +1378,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.Reset(),
             objecttypes::BUTTON(c) => c.Reset(),
             objecttypes::HIDDEN(c) => c.Reset(),
+            objecttypes::PROGRESS(c) => c.Reset(),
             _ => panic!("method on object not supported"),
         }
     }

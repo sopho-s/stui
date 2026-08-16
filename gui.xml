@@ -21,12 +21,13 @@
                 <Selector id="2" down="3" up="1" activecolour="#09ff00">
                     <Button text="Submit" length="69" height="1" link="4"/>
                 </Selector>
+                <Progress length="10" height="2" value="3.4" min="0" max="10" preset="3"/>
                 </Column>
             </Box>
 
             <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
                 <Column gap="1">
-                    <Text text="This library supports nested layouts using rows, columns, and boxes with optional borders." length="38" height="3"/>
+                    <Text text="This library supports nested layouts using rows, columns, and boxes with optional borders." length="38" height="3" preset="0"/>
                     <Text text="Type to fill the inputs." length="38" height="1"/>
                 </Column>
             </Box>

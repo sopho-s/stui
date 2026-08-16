@@ -38,8 +38,6 @@ fn linkButtons(idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<RefCell<Vec<Rc<RefCel
     for i in 0..buttonwants.as_ref().borrow().len() {
         let refer = &buttonlist.as_ref().borrow_mut()[i];
         let buttonwant = buttonwants.as_ref().borrow()[i];
-        print!("{:?}\n", idlist);
-        print!("{:?}\n", buttonwant);
         let currindex = idlist.as_ref().borrow().iter().position(|&r| r == buttonwant).unwrap();
         let mut refer2 = refer.as_ref().borrow_mut();
         let button = refer2.convertToButton();
@@ -220,6 +218,20 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 let object = objects::objecttypes::HIDDEN(
                     objects::Hidden::new(
                         Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals)))
+                    )
+                );
+                let thisobject = Rc::new(RefCell::new(object));
+                return thisobject;
+            },
+            "Progress" => {
+                let object = objects::objecttypes::PROGRESS(
+                    objects::Progress::new(
+                        node.attribute("min").unwrap_or("0").parse::<f32>().unwrap(),
+                        node.attribute("max").unwrap_or("0").parse::<f32>().unwrap(),
+                        node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
+                        node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
+                        node.attribute("preset").unwrap_or("0").parse::<i8>().unwrap(),
+                        Some(node.attribute("value").unwrap_or("0").parse::<f32>().unwrap()),
                     )
                 );
                 let thisobject = Rc::new(RefCell::new(object));
