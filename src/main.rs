@@ -45,6 +45,8 @@ fn main() {
         }
         root.Reset();
         print!("{}", root.getResetString());
+        let mut progress = root.getObjectByName("Progress");
+        print!("{:?}", progress);
         for (name, signal) in signals.as_ref().borrow().iter() {
             let (formname, formdata) = signal.try_recv().unwrap_or(("".to_owned(), "".to_owned()));
             if formname.len() > 0 {

@@ -207,7 +207,8 @@ pub struct Text {
     text: String,
     length: i32,
     height: i32,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String
 }
 
 #[derive(Clone, Debug)]
@@ -230,7 +231,8 @@ impl Text {
             text: text.unwrap_or("".to_string()),
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
-            effect: effect
+            effect: effect,
+            name: "".to_owned(),
         };
     }
     pub fn toString(&self) -> String {
@@ -305,6 +307,10 @@ impl Text {
     pub fn getFormData(&mut self) -> Option<String> {
         return None;
     }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        vec![]
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -315,7 +321,8 @@ pub struct Box {
     paddingright: i32,
     paddingup: i32,
     paddingdown: i32,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String
 }
 
 #[derive(Clone, Debug)]
@@ -359,7 +366,8 @@ impl Box {
             paddingright: paddingright.unwrap_or(0),
             paddingup: paddingup.unwrap_or(0),
             paddingdown: paddingdown.unwrap_or(0),
-            effect: effect
+            effect: effect,
+            name: "".to_owned(),
         };
     }
     pub fn toString(&self) -> String {
@@ -455,11 +463,22 @@ impl Box {
     pub fn newKeyboardInput(&mut self, input: Key) {
         self.item.borrow_mut().newKeyboardInput(input);
     }
+
     pub fn Reset(&mut self) {
         self.item.borrow_mut().Reset();
     }
+
     pub fn getFormData(&mut self) -> Option<String> {
         return self.item.as_ref().borrow_mut().getFormData();
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        let mut objects = vec![];
+        if &self.item.as_ref().borrow_mut().getName() == name {
+            objects.push(Rc::clone(&self.item));
+        }
+        objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
+        return objects;
     }
 }
 
@@ -467,7 +486,8 @@ impl Box {
 pub struct Row {
     items: Vec<Rc<RefCell<objecttypes>>>,
     gap: i32,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String
 }
 
 #[derive(Clone, Debug)]
@@ -497,7 +517,8 @@ impl Row {
         return Row {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
-            effect: effect
+            effect: effect,
+            name: "".to_owned(),
         };
     }
     pub fn toString(&self) -> String {
@@ -570,6 +591,7 @@ impl Row {
             item.borrow_mut().Reset();
         }
     }
+
     pub fn getFormData(&mut self) -> Option<String> {
         let mut returnstring = "".to_owned();
         for i in 0..self.items.len() {
@@ -586,13 +608,25 @@ impl Row {
         }
         return Some(returnstring);
     }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        let mut objects = vec![];
+        for i in 0..self.items.len() {
+            if &self.items[i].as_ref().borrow_mut().getName() == name {
+                objects.push(Rc::clone(&self.items[i]));
+                objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
+            }
+        }
+        return objects;
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct Column {
     items: Vec<Rc<RefCell<objecttypes>>>,
     gap: i32,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String
 }
 
 #[derive(Clone, Debug)]
@@ -620,7 +654,8 @@ impl Column {
         return Column {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
-            effect: effect
+            effect: effect,
+            name: "".to_owned(),
         };
     }
 
@@ -683,11 +718,13 @@ impl Column {
             item.borrow_mut().newKeyboardInput(input.clone());
         }
     }
+
     pub fn Reset(&mut self) {
         for item in self.items.clone() {
             item.borrow_mut().Reset();
         }
     }
+
     pub fn getFormData(&mut self) -> Option<String> {
         let mut returnstring = "".to_owned();
         for i in 0..self.items.len() {
@@ -703,6 +740,17 @@ impl Column {
             return None;
         }
         return Some(returnstring);
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        let mut objects = vec![];
+        for i in 0..self.items.len() {
+            if &self.items[i].as_ref().borrow_mut().getName() == name {
+                objects.push(Rc::clone(&self.items[i]));
+                objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
+            }
+        }
+        return objects;
     }
 }
 #[derive(Clone, Debug)]
@@ -835,6 +883,10 @@ impl Input {
     pub fn getFormData(&mut self) -> Option<String> {
         return Some(((self.name.clone() + ":") + &self.text));
     }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        vec![]
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -847,7 +899,8 @@ pub struct Selector {
     isactive: bool,
     wasjustset: bool,
     effect: Option<Effect>,
-    activeeffect: Option<Effect>
+    activeeffect: Option<Effect>,
+    name: String
 }
 
 impl Selector {
@@ -861,15 +914,18 @@ impl Selector {
             isactive: isactive.unwrap_or(false),
             wasjustset: false,
             effect: effect,
-            activeeffect: activeeffect
+            activeeffect: activeeffect,
+            name: "".to_owned()
         };
     }
+
     pub fn setElements(&mut self, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>) {
         self.right = right;
         self.left = left; 
         self.up = up;
         self.down = down; 
     }
+    
     pub fn toString(&self) -> String {
         let returnstring = self.item.as_ref().borrow().toString();
         if (self.effect.is_none() && !self.isactive) || (self.activeeffect.is_none() && self.isactive)  {
@@ -888,6 +944,7 @@ impl Selector {
     pub fn getLength(&self) -> i32 {
         self.item.as_ref().borrow().getLength()
     }
+
     pub fn newKeyboardInput(&mut self, input: Key) {
         if self.isactive && !self.wasjustset {
             match input.clone() {
@@ -909,40 +966,56 @@ impl Selector {
             self.wasjustset = false;
         }
     }
+
     pub fn activate(&mut self) {
         self.wasjustset = true;
         self.isactive = true;
     }
+
     fn Right(&mut self) {
         if self.right.as_ref().is_some() {
             self.isactive = false;
             self.right.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
         }
     }
+
     fn Left(&mut self) {
         if self.left.as_ref().is_some() {
             self.isactive = false;
             self.left.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
         }
     }
+
     fn Up(&mut self) {
         if self.up.as_ref().is_some() {
             self.isactive = false;
             self.up.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
         }
     }
+
     fn Down(&mut self) {
         if self.down.as_ref().is_some() {
             self.isactive = false;
             self.down.as_ref().unwrap().as_ref().borrow_mut().convertToSelector().activate();
         }
     }
+
     pub fn Reset(&mut self) {
         self.wasjustset = false;
         self.item.as_ref().borrow_mut().Reset()
     }
+
     pub fn getFormData(&mut self) -> Option<String> {
         return self.item.as_ref().borrow_mut().getFormData();
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        let mut objects = vec![];
+        if &self.item.as_ref().borrow_mut().getName() == name {
+            objects.push(Rc::clone(&self.item));
+        }
+        objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
+        return objects;
     }
 }
 
@@ -997,11 +1070,22 @@ impl Form {
             _ => {self.item.borrow_mut().newKeyboardInput(input);},
         }
     }
+
     pub fn Reset(&mut self) {
         self.item.borrow_mut().Reset();
     }
+
     pub fn getFormData(&mut self) -> Option<String> {
         return self.item.as_ref().borrow_mut().getFormData();
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        let mut objects = vec![];
+        if &self.item.as_ref().borrow_mut().getName() == name {
+            objects.push(Rc::clone(&self.item));
+        }
+        objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
+        return objects;
     }
 }
 
@@ -1011,7 +1095,8 @@ pub struct Button {
     length: i32,
     height: i32,
     item: Option<Rc<RefCell<objecttypes>>>,
-    effect: Option<Effect>
+    effect: Option<Effect>,
+    name: String
 }
 
 #[derive(Clone, Debug)]
@@ -1035,7 +1120,8 @@ impl Button {
             length: length.unwrap_or(0),
             height: height.unwrap_or(0),
             item: item,
-            effect: effect
+            effect: effect,
+            name: "".to_owned(),
         };
     }
     pub fn toString(&self) -> String {
@@ -1119,6 +1205,10 @@ impl Button {
     pub fn setElement(&mut self, item: Option<Rc<RefCell<objecttypes>>>) {
         self.item = item;
     }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        vec![]
+    }
 }
 
 #[macro_export]
@@ -1132,7 +1222,8 @@ macro_rules! Hidden {
 
 #[derive(Clone, Debug)]
 pub struct Hidden {
-    item: Rc<RefCell<objecttypes>>
+    item: Rc<RefCell<objecttypes>>,
+    name: String
 }
 
 impl Hidden {
@@ -1140,7 +1231,8 @@ impl Hidden {
         item: Option<Rc<RefCell<objecttypes>>>
     ) -> Hidden {
         return Hidden {
-            item: item.unwrap()
+            item: item.unwrap(),
+            name: "".to_owned(),
         };
     }
     pub fn toString(&self) -> String {
@@ -1162,6 +1254,15 @@ impl Hidden {
     }
     pub fn getFormData(&mut self) -> Option<String> {
         return self.item.as_ref().borrow_mut().getFormData();
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        let mut objects = vec![];
+        if &self.item.as_ref().borrow_mut().getName() == name {
+            objects.push(Rc::clone(&self.item));
+        }
+        objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
+        return objects;
     }
 }
 
@@ -1187,6 +1288,7 @@ pub struct Progress {
     length: i32,
     preset: i8,
     value: f32,
+    name: String
 }
 
 impl Progress {
@@ -1200,6 +1302,7 @@ impl Progress {
             length: length,
             preset: preset,
             value: startval.unwrap_or(min),
+            name: "".to_owned(),
         };
     }
 
@@ -1241,6 +1344,10 @@ impl Progress {
     }
     pub fn getFormData(&mut self) -> Option<String> {
         None
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+        vec![]
     }
 }
 
@@ -1360,13 +1467,6 @@ impl objecttypes {
         }
     }
 
-    pub fn getName(&mut self) -> String {
-        match self {
-            objecttypes::FORM(c) => c.getName(),
-            _ => "".to_owned(),
-        }
-    }
-
     pub fn Reset(&mut self) {
         match self {
             objecttypes::TEXT(c) => c.Reset(),
@@ -1379,6 +1479,54 @@ impl objecttypes {
             objecttypes::BUTTON(c) => c.Reset(),
             objecttypes::HIDDEN(c) => c.Reset(),
             objecttypes::PROGRESS(c) => c.Reset(),
+            _ => panic!("method on object not supported"),
+        }
+    }
+
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>>  {
+        match self {
+            objecttypes::TEXT(c) => c.getObjectByName(name),
+            objecttypes::BOX(c) => c.getObjectByName(name),
+            objecttypes::ROW(c) => c.getObjectByName(name),
+            objecttypes::COLUMN(c) => c.getObjectByName(name),
+            objecttypes::INPUT(c) => c.getObjectByName(name),
+            objecttypes::SELECTOR(c) => c.getObjectByName(name),
+            objecttypes::FORM(c) => c.getObjectByName(name),
+            objecttypes::BUTTON(c) => c.getObjectByName(name),
+            objecttypes::HIDDEN(c) => c.getObjectByName(name),
+            objecttypes::PROGRESS(c) => c.getObjectByName(name),
+            _ => panic!("method on object not supported"),
+        }
+    }
+
+    pub fn setName(&mut self, name: &str) {
+        match self {
+            objecttypes::TEXT(c) => {c.name = name.to_owned();},
+            objecttypes::BOX(c) => {c.name = name.to_owned();},
+            objecttypes::ROW(c) => {c.name = name.to_owned();},
+            objecttypes::COLUMN(c) => {c.name = name.to_owned();},
+            objecttypes::INPUT(c) => {c.name = name.to_owned();},
+            objecttypes::SELECTOR(c) => {c.name = name.to_owned();},
+            objecttypes::FORM(c) => {c.name = name.to_owned();},
+            objecttypes::BUTTON(c) => {c.name = name.to_owned();},
+            objecttypes::HIDDEN(c) => {c.name = name.to_owned();},
+            objecttypes::PROGRESS(c) => {c.name = name.to_owned();},
+            _ => panic!("method on object not supported"),
+        }
+    }
+
+    pub fn getName(&mut self) -> String {
+        match self {
+            objecttypes::TEXT(c) => c.name.clone(),
+            objecttypes::BOX(c) => c.name.clone(),
+            objecttypes::ROW(c) => c.name.clone(),
+            objecttypes::COLUMN(c) => c.name.clone(),
+            objecttypes::INPUT(c) => c.name.clone(),
+            objecttypes::SELECTOR(c) => c.name.clone(),
+            objecttypes::FORM(c) => c.name.clone(),
+            objecttypes::BUTTON(c) => c.name.clone(),
+            objecttypes::HIDDEN(c) => c.name.clone(),
+            objecttypes::PROGRESS(c) => {print!("test: {}", c.name.clone()); c.name.clone()},
             _ => panic!("method on object not supported"),
         }
     }

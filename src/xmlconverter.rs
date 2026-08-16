@@ -56,7 +56,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
         let effect = Some(Effect::new(colour));
         match node.tag_name().name() {
             "Box" => {
-                let object = Box!(
+                let mut object = Box!(
                     parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals)),
                     node.attribute("hasborder").unwrap_or("false") == "true",
                     node.attribute("paddingleft").unwrap_or("0").parse::<i32>().unwrap(),
@@ -65,6 +65,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                     node.attribute("paddingdown").unwrap_or("0").parse::<i32>().unwrap(),
                     effect
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
                     idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
@@ -73,11 +75,13 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 return thisobject;
             },
             "Text" => {
-                let object = Text!(node.attribute("text").unwrap_or("").to_owned(),
+                let mut object = Text!(node.attribute("text").unwrap_or("").to_owned(),
                     node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
                     effect
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
                     idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
@@ -92,13 +96,15 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         vec.push(parseXML(item, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals)));
                     }
                 }
-                let object = objects::objecttypes::ROW(
+                let mut object = objects::objecttypes::ROW(
                     objects::Row::new(
                         Some(vec),
                         Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap()),
                         effect
                     )
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
                     idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
@@ -113,13 +119,15 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         vec.push(parseXML(item, Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals)));
                     }
                 }
-                let object = objects::objecttypes::COLUMN(
+                let mut object = objects::objecttypes::COLUMN(
                     objects::Column::new(
                         Some(vec),
                         Some(node.attribute("gap").unwrap_or("0").parse::<i32>().unwrap()),
                         effect
                     )
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
                     idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
@@ -129,7 +137,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
             },
             "Input" => {
                 let name = node.attribute("name").unwrap_or("").to_owned();
-                let object = Input!(node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
+                let mut object = Input!(node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("placeholder").unwrap_or("").to_owned(),
                     effect,
@@ -150,7 +158,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                     activecolour = None;
                 }
                 let activeeffect = Some(Effect::new(activecolour));
-                let object = objects::objecttypes::SELECTOR(
+                let mut object = objects::objecttypes::SELECTOR(
                     objects::Selector::new(
                         Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals))),
                         None,
@@ -162,6 +170,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         activeeffect
                     )
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 selectorlist.borrow_mut().push(Rc::clone(&thisobject));
                 selectorwants.borrow_mut().push(vec![
@@ -179,7 +189,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
             "Form" => {
                 let name = node.attribute("name").unwrap_or("").to_owned();
                 let (sender, reciever) = channel::<(String, String)>();
-                let object = objects::objecttypes::FORM(
+                let mut object = objects::objecttypes::FORM(
                     objects::Form::new(
                         Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals))),
                         sender,
@@ -195,12 +205,14 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 return thisobject;
             },
             "Button" => {
-                let object = Button!(node.attribute("text").unwrap_or("").to_owned(),
+                let mut object = Button!(node.attribute("text").unwrap_or("").to_owned(),
                     node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                     node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
                     None,
                     effect.unwrap()
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 if node.attribute("id").unwrap_or("-1") != "-1" {
                     idlist.as_ref().borrow_mut().push(node.attribute("id").unwrap().parse::<i32>().unwrap());
@@ -215,16 +227,18 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                 return thisobject;
             },
             "Hidden" => {
-                let object = objects::objecttypes::HIDDEN(
+                let mut object = objects::objecttypes::HIDDEN(
                     objects::Hidden::new(
                         Some(parseXML(node.first_element_child().unwrap(), Rc::clone(&idlist), Rc::clone(&nodelist), Rc::clone(&selectorlist), Rc::clone(&selectorwants), Rc::clone(&buttonlist), Rc::clone(&buttonwants), Rc::clone(&signals)))
                     )
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 return thisobject;
             },
             "Progress" => {
-                let object = objects::objecttypes::PROGRESS(
+                let mut object = objects::objecttypes::PROGRESS(
                     objects::Progress::new(
                         node.attribute("min").unwrap_or("0").parse::<f32>().unwrap(),
                         node.attribute("max").unwrap_or("0").parse::<f32>().unwrap(),
@@ -234,6 +248,8 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         Some(node.attribute("value").unwrap_or("0").parse::<f32>().unwrap()),
                     )
                 );
+                let name = node.attribute("name").unwrap_or("");
+                object.setName(name);
                 let thisobject = Rc::new(RefCell::new(object));
                 return thisobject;
             },
