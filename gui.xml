@@ -21,7 +21,7 @@
                 <Selector id="2" down="3" up="1" activecolour="#09ff00">
                     <Button text="Submit" length="69" height="1" link="4"/>
                 </Selector>
-                <Progress name="progress" length="10" height="2" value="3.4" min="0" max="10" preset="3"/>
+                <Progress name="progress" showpercent="1" length="10" height="2" value="3.4" min="0" max="10" preset="3"/>
                 </Column>
             </Box>
 

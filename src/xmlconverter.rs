@@ -245,6 +245,7 @@ fn parseXML(doc: roxmltree::Node, idlist: Rc<RefCell<Vec<i32>>>, nodelist: Rc<Re
                         node.attribute("height").unwrap_or("0").parse::<i32>().unwrap(),
                         node.attribute("length").unwrap_or("0").parse::<i32>().unwrap(),
                         node.attribute("preset").unwrap_or("0").parse::<i8>().unwrap(),
+                        node.attribute("showpercent").unwrap_or("0").parse::<i8>().unwrap(),
                         Some(node.attribute("value").unwrap_or("0").parse::<f32>().unwrap()),
                     )
                 );

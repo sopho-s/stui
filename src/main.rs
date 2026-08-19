@@ -26,7 +26,7 @@ fn main() {
         print!("{}\n\r", root.toString());
         thread::sleep(duration);
         sendint.send(0);
-        let tmpqueue = recvevent.try_recv();
+        let tmpqueue = recvevent.recv();
         if tmpqueue.is_ok() {
             let mut queue = tmpqueue.unwrap();
             while !queue.isEmpty() {

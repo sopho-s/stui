@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use crate::eventmanager::Key;
 use std::sync::mpsc::Sender;
 use core::f64;
+use format_num::NumberFormat;
 
 fn padToHeight(a: String, aw: i32, h: i32) -> String {
     if h == 0 {
@@ -1268,13 +1269,14 @@ impl Hidden {
 
 #[macro_export]
 macro_rules! Progress {
-    ($min:expr, $max:expr, $height:expr, $length:expr, $startval:expr) => {
+    ($min:expr, $max:expr, $height:expr, $length:expr, $preset:expr, $showpercent:expr, $startval:expr) => {
         objects::objecttypes::Progress(objects::Hidden::new(
             $min,
             $max,
             $height,
             $length,
             $preset,
+            $showpercent,
             Some($startval)
         ))
     };
@@ -1287,13 +1289,14 @@ pub struct Progress {
     height: i32,
     length: i32,
     preset: i8,
+    showpercent: i8,
     value: f32,
     name: String
 }
 
 impl Progress {
     pub fn new(
-        min: f32, max: f32, height: i32, length: i32, preset: i8, startval: Option<f32>
+        min: f32, max: f32, height: i32, length: i32, preset: i8, showpercent: i8, startval: Option<f32>
     ) -> Progress {
         return Progress {
             min: min,
@@ -1301,6 +1304,7 @@ impl Progress {
             height: height,
             length: length,
             preset: preset,
+            showpercent: showpercent, 
             value: startval.unwrap_or(min),
             name: "".to_owned(),
         };
@@ -1326,6 +1330,11 @@ impl Progress {
             }
         }
         bar = padToWidth(bar, self.length);
+        if self.showpercent > 0 {
+            let num = NumberFormat::new();
+            bar += &num.format(".1f", (self.value - self.min) / (self.max - self.min) * 100.0);
+            bar += "%";
+        }
         return createNLengthStringNL(self.height, &bar);
     }
 
@@ -1334,6 +1343,12 @@ impl Progress {
     }
 
     pub fn getLength(&self) -> i32 {
+        if self.showpercent > 0 {
+            let num = NumberFormat::new();
+            let mut tmp = num.format(".1f", (self.value - self.min) / (self.max - self.min) * 100.0);
+            tmp += "%";
+            return self.length + tmp.len() as i32;
+        }
         self.length
     }
 
