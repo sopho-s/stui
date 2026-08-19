@@ -1,11 +1,11 @@
 
-<Box hasborder="true" paddingleft="2" paddingright="2" paddingup="1" paddingdown="1">
-    <Column gap="1">
-        <Text text="TUI Library Demo" length="69" height="1"/>
+<Box name="test1" hasborder="true" paddingleft="2" paddingright="2" paddingup="1" paddingdown="1">
+    <Column name="test2" gap="1">
+        <Text name="test3" text="TUI Library Demo" length="69" height="1"/>
  
-        <Row>
-            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
-                <Column gap="1">
+        <Row name="test4">
+            <Box name="test5" hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
+                <Column name="test6" gap="1">
                 <Form id="4" name="userform">
                     <Column gap="1">
                         <Text text="Name:" length="20" height="1"/>
@@ -25,7 +25,7 @@
                 </Column>
             </Box>
 
-            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
+            <Box name="test6" hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
                 <Column gap="1">
                     <Text text="This library supports nested layouts using rows, columns, and boxes with optional borders." length="38" height="3" preset="0"/>
                     <Text text="Type to fill the inputs." length="38" height="1"/>

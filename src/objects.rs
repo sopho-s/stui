@@ -614,8 +614,8 @@ impl Row {
         for i in 0..self.items.len() {
             if &self.items[i].as_ref().borrow_mut().getName() == name {
                 objects.push(Rc::clone(&self.items[i]));
-                objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
             }
+            objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
         }
         return objects;
     }
@@ -747,8 +747,8 @@ impl Column {
         for i in 0..self.items.len() {
             if &self.items[i].as_ref().borrow_mut().getName() == name {
                 objects.push(Rc::clone(&self.items[i]));
-                objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
             }
+            objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
         }
         return objects;
     }
@@ -1332,8 +1332,17 @@ impl Progress {
     pub fn getHeight(&self) -> i32 {
         self.height
     }
+
     pub fn getLength(&self) -> i32 {
         self.length
+    }
+
+    pub fn getValue(&self) -> f32 {
+        self.value
+    }
+
+    pub fn setValue(&mut self, value: f32) {
+        self.value = value;
     }
 
     pub fn newKeyboardInput(&mut self, input: Key) {
@@ -1451,6 +1460,13 @@ impl objecttypes {
         }
     }
 
+    pub fn convertToProgress(&mut self) -> &mut Progress {
+        match self {
+            objecttypes::PROGRESS(c) => c,
+            _ => panic!("method on object not supported"),
+        }
+    }
+
     pub fn getFormData(&mut self) -> Option<String> {
         match self {
             objecttypes::TEXT(c) => None,
@@ -1526,7 +1542,7 @@ impl objecttypes {
             objecttypes::FORM(c) => c.name.clone(),
             objecttypes::BUTTON(c) => c.name.clone(),
             objecttypes::HIDDEN(c) => c.name.clone(),
-            objecttypes::PROGRESS(c) => {print!("test: {}", c.name.clone()); c.name.clone()},
+            objecttypes::PROGRESS(c) => c.name.clone(),
             _ => panic!("method on object not supported"),
         }
     }
