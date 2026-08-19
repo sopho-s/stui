@@ -2,7 +2,7 @@ pub mod objects;
 pub mod eventmanager;
 pub mod xmlconverter;
 pub mod util;
-use std::{thread, time::Duration};
+use std::thread;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::channel;
 use eventmanager::EventQueue;
@@ -14,42 +14,51 @@ use crate::xmlconverter::parseDocument;
 
 fn main() {
     let (mut root, mut signals) = parseDocument("./gui.xml");
-    let duration = Duration::from_millis(100);
     let (sendint, recvint): (Sender<i32>, Receiver<i32>) = channel();
     let (sendevent, recvevent): (Sender<EventQueue>, Receiver<EventQueue>) = channel();
     thread::spawn(
         move || {
-            eventListener(recvint, sendevent);
+            eventListener(recvint, sendevent, 50);
         }
     );
     while true {
         print!("{}\n\r", root.toString());
-        thread::sleep(duration);
         sendint.send(0);
-        let mut queue = recvevent.recv().unwrap();
-        while !queue.isEmpty() {
-            let item = queue.pop();
-            match item {
-                event::KEYEVENT(c) => {
-                        match c.clone() {
-                            Key::ESCAPEKEY(c) => {
-                                disable_raw_mode();
-                                return;
-                            },
-                            _ => {},
-                        }
-                        root.newKeyboardInput(c);
-                    },
-                _ => {},
+        let tmpqueue = recvevent.recv();
+        if tmpqueue.is_ok() {
+            let mut queue = tmpqueue.unwrap();
+            while !queue.isEmpty() {
+                let item = queue.pop();
+                match item {
+                    event::KEYEVENT(c) => {
+                            match c.clone() {
+                                Key::ESCAPEKEY(c) => {
+                                    disable_raw_mode();
+                                    return;
+                                },
+                                _ => {},
+                            }
+                            root.newKeyboardInput(c);
+                        },
+                    _ => {},
+                }
             }
         }
         root.Reset();
         print!("{}", root.getResetString());
+        let mut progress = root.getObjectByName("progress");
+        if progress.len() != 0 {
+            let mut progressref = progress[0].borrow_mut();
+            let mut currentprogressvalue = progressref.convertToProgress().getValue();
+            if currentprogressvalue > 30.0 {
+                currentprogressvalue = -1.0;
+            }
+            progressref.convertToProgress().setValue(currentprogressvalue + 1.0);
+        }
         for (name, signal) in signals.as_ref().borrow().iter() {
             let (formname, formdata) = signal.try_recv().unwrap_or(("".to_owned(), "".to_owned()));
             if formname.len() > 0 {
-                print!("'{:?}'", formdata);
-                print!("'{:?}'", formname);
+                ;
             }
         }
     }
