@@ -1,6 +1,7 @@
-use crossterm::event::{Event, KeyCode, KeyEvent, read};
+use crossterm::event::{Event, KeyCode, KeyEvent, read, poll};
 use crossterm::terminal::enable_raw_mode;
 use std::sync::mpsc::{Receiver, Sender};
+use std::{thread, time::Duration};
 
 #[derive(Clone, Debug)]
 pub enum event {
@@ -46,7 +47,7 @@ impl EventQueue {
     }
 }
 
-pub fn eventListener(rx: Receiver<i32>, tx: Sender<EventQueue>) {
+pub fn eventListener(rx: Receiver<i32>, tx: Sender<EventQueue>, pollduration: u64) {
     let mut eventqueue = EventQueue { events: vec![] };
     let s = "".to_string();
     enable_raw_mode().unwrap();
@@ -58,36 +59,38 @@ pub fn eventListener(rx: Receiver<i32>, tx: Sender<EventQueue>) {
         } else if recvval == 1 {
             return;
         } else {
-            if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
-                match code {
-                    KeyCode::Char(c) => {
-                        eventqueue.push(event::KEYEVENT(Key::BASICKEY(c.to_string())))
+            if poll(Duration::from_millis(pollduration)).unwrap_or(false) {
+                if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
+                    match code {
+                        KeyCode::Char(c) => {
+                            eventqueue.push(event::KEYEVENT(Key::BASICKEY(c.to_string())))
+                        }
+                        KeyCode::Up => {
+                            eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("up".to_string())))
+                        }
+                        KeyCode::Down => {
+                            eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("down".to_string())))
+                        }
+                        KeyCode::Left => {
+                            eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("left".to_string())))
+                        }
+                        KeyCode::Right => {
+                            eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("right".to_string())))
+                        }
+                        KeyCode::Enter => {
+                            eventqueue.push(event::KEYEVENT(Key::ENTERKEY("\n".to_string())))
+                        }
+                        KeyCode::Delete => {
+                            eventqueue.push(event::KEYEVENT(Key::DELETEKEY("delete".to_string())))
+                        }
+                        KeyCode::Backspace => {
+                            eventqueue.push(event::KEYEVENT(Key::DELETEKEY("delete".to_string())))
+                        }
+                        KeyCode::Esc => {
+                            eventqueue.push(event::KEYEVENT(Key::ESCAPEKEY("escape".to_string())))
+                        }
+                        _ => {}
                     }
-                    KeyCode::Up => {
-                        eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("up".to_string())))
-                    }
-                    KeyCode::Down => {
-                        eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("down".to_string())))
-                    }
-                    KeyCode::Left => {
-                        eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("left".to_string())))
-                    }
-                    KeyCode::Right => {
-                        eventqueue.push(event::KEYEVENT(Key::MOVEMENTKEY("right".to_string())))
-                    }
-                    KeyCode::Enter => {
-                        eventqueue.push(event::KEYEVENT(Key::ENTERKEY("\n".to_string())))
-                    }
-                    KeyCode::Delete => {
-                        eventqueue.push(event::KEYEVENT(Key::DELETEKEY("delete".to_string())))
-                    }
-                    KeyCode::Backspace => {
-                        eventqueue.push(event::KEYEVENT(Key::DELETEKEY("delete".to_string())))
-                    }
-                    KeyCode::Esc => {
-                        eventqueue.push(event::KEYEVENT(Key::ESCAPEKEY("escape".to_string())))
-                    }
-                    _ => {}
                 }
             }
         }

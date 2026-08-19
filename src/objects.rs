@@ -2,7 +2,7 @@ use crate::util;
 use util::concatenate;
 use util::createNLengthString;
 use util::createNLengthStringNL;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::cell::RefCell;
 use crate::eventmanager::Key;
 use std::sync::mpsc::Sender;
@@ -309,14 +309,14 @@ impl Text {
         return None;
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         vec![]
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Box {
-    item: Rc<RefCell<objecttypes>>,
+    item: Arc<RefCell<objecttypes>>,
     hasborder: bool,
     paddingleft: i32,
     paddingright: i32,
@@ -352,7 +352,7 @@ macro_rules! Box {
 
 impl Box {
     pub fn new(
-        item: Rc<RefCell<objecttypes>>,
+        item: Arc<RefCell<objecttypes>>,
         hasborder: Option<bool>,
         paddingleft: Option<i32>,
         paddingright: Option<i32>,
@@ -415,7 +415,7 @@ impl Box {
         }
     }
 
-    pub fn changeItem(&mut self, item: Rc<RefCell<objecttypes>>) {
+    pub fn changeItem(&mut self, item: Arc<RefCell<objecttypes>>) {
         self.item = item;
     }
 
@@ -473,10 +473,10 @@ impl Box {
         return self.item.as_ref().borrow_mut().getFormData();
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         let mut objects = vec![];
         if &self.item.as_ref().borrow_mut().getName() == name {
-            objects.push(Rc::clone(&self.item));
+            objects.push(Arc::clone(&self.item));
         }
         objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
         return objects;
@@ -485,7 +485,7 @@ impl Box {
 
 #[derive(Clone, Debug)]
 pub struct Row {
-    items: Vec<Rc<RefCell<objecttypes>>>,
+    items: Vec<Arc<RefCell<objecttypes>>>,
     gap: i32,
     effect: Option<Effect>,
     name: String
@@ -514,7 +514,7 @@ macro_rules! Row {
 }
 
 impl Row {
-    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>, effect: Option<Effect>) -> Row {
+    pub fn new(items: Option<Vec<Arc<RefCell<objecttypes>>>>, gap: Option<i32>, effect: Option<Effect>) -> Row {
         return Row {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
@@ -566,7 +566,7 @@ impl Row {
         self.gap = gap;
     }
 
-    pub fn addItem(&mut self, item: Rc<RefCell<objecttypes>>) {
+    pub fn addItem(&mut self, item: Arc<RefCell<objecttypes>>) {
         self.items.push(item);
     }
 
@@ -610,11 +610,11 @@ impl Row {
         return Some(returnstring);
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         let mut objects = vec![];
         for i in 0..self.items.len() {
             if &self.items[i].as_ref().borrow_mut().getName() == name {
-                objects.push(Rc::clone(&self.items[i]));
+                objects.push(Arc::clone(&self.items[i]));
             }
             objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
         }
@@ -624,7 +624,7 @@ impl Row {
 
 #[derive(Clone, Debug)]
 pub struct Column {
-    items: Vec<Rc<RefCell<objecttypes>>>,
+    items: Vec<Arc<RefCell<objecttypes>>>,
     gap: i32,
     effect: Option<Effect>,
     name: String
@@ -651,7 +651,7 @@ macro_rules! Column {
 
 
 impl Column {
-    pub fn new(items: Option<Vec<Rc<RefCell<objecttypes>>>>, gap: Option<i32>, effect: Option<Effect>) -> Column {
+    pub fn new(items: Option<Vec<Arc<RefCell<objecttypes>>>>, gap: Option<i32>, effect: Option<Effect>) -> Column {
         return Column {
             items: items.unwrap_or(vec![]),
             gap: gap.unwrap_or(0),
@@ -664,7 +664,7 @@ impl Column {
         self.gap = gap;
     }
 
-    pub fn addItem(&mut self, item: Rc<RefCell<objecttypes>>) {
+    pub fn addItem(&mut self, item: Arc<RefCell<objecttypes>>) {
         self.items.push(item);
     }
 
@@ -743,11 +743,11 @@ impl Column {
         return Some(returnstring);
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         let mut objects = vec![];
         for i in 0..self.items.len() {
             if &self.items[i].as_ref().borrow_mut().getName() == name {
-                objects.push(Rc::clone(&self.items[i]));
+                objects.push(Arc::clone(&self.items[i]));
             }
             objects.extend(self.items[i].as_ref().borrow_mut().getObjectByName(name));
         }
@@ -885,18 +885,18 @@ impl Input {
         return Some(((self.name.clone() + ":") + &self.text));
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         vec![]
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct Selector {
-    item: Rc<RefCell<objecttypes>>,
-    right: Option<Rc<RefCell<objecttypes>>>,
-    left: Option<Rc<RefCell<objecttypes>>>,
-    up: Option<Rc<RefCell<objecttypes>>>,
-    down: Option<Rc<RefCell<objecttypes>>>,
+    item: Arc<RefCell<objecttypes>>,
+    right: Option<Arc<RefCell<objecttypes>>>,
+    left: Option<Arc<RefCell<objecttypes>>>,
+    up: Option<Arc<RefCell<objecttypes>>>,
+    down: Option<Arc<RefCell<objecttypes>>>,
     isactive: bool,
     wasjustset: bool,
     effect: Option<Effect>,
@@ -905,7 +905,7 @@ pub struct Selector {
 }
 
 impl Selector {
-    pub fn new(item: Option<Rc<RefCell<objecttypes>>>, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>, isactive: Option<bool>, effect: Option<Effect>, activeeffect: Option<Effect>) -> Selector {
+    pub fn new(item: Option<Arc<RefCell<objecttypes>>>, right: Option<Arc<RefCell<objecttypes>>>, left: Option<Arc<RefCell<objecttypes>>>, up: Option<Arc<RefCell<objecttypes>>>, down: Option<Arc<RefCell<objecttypes>>>, isactive: Option<bool>, effect: Option<Effect>, activeeffect: Option<Effect>) -> Selector {
         return Selector {
             item: item.unwrap(),
             right: right,
@@ -920,7 +920,7 @@ impl Selector {
         };
     }
 
-    pub fn setElements(&mut self, right: Option<Rc<RefCell<objecttypes>>>, left: Option<Rc<RefCell<objecttypes>>>, up: Option<Rc<RefCell<objecttypes>>>, down: Option<Rc<RefCell<objecttypes>>>) {
+    pub fn setElements(&mut self, right: Option<Arc<RefCell<objecttypes>>>, left: Option<Arc<RefCell<objecttypes>>>, up: Option<Arc<RefCell<objecttypes>>>, down: Option<Arc<RefCell<objecttypes>>>) {
         self.right = right;
         self.left = left; 
         self.up = up;
@@ -1010,10 +1010,10 @@ impl Selector {
         return self.item.as_ref().borrow_mut().getFormData();
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         let mut objects = vec![];
         if &self.item.as_ref().borrow_mut().getName() == name {
-            objects.push(Rc::clone(&self.item));
+            objects.push(Arc::clone(&self.item));
         }
         objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
         return objects;
@@ -1033,14 +1033,14 @@ macro_rules! Form {
 
 #[derive(Clone, Debug)]
 pub struct Form {
-    item: Rc<RefCell<objecttypes>>,
+    item: Arc<RefCell<objecttypes>>,
     signal: Sender<(String, String)>,
     name: String,
 }
 
 impl Form {
     pub fn new(
-        item: Option<Rc<RefCell<objecttypes>>>,
+        item: Option<Arc<RefCell<objecttypes>>>,
         signal: Sender<(String, String)>,
         name: String,
     ) -> Form {
@@ -1080,10 +1080,10 @@ impl Form {
         return self.item.as_ref().borrow_mut().getFormData();
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         let mut objects = vec![];
         if &self.item.as_ref().borrow_mut().getName() == name {
-            objects.push(Rc::clone(&self.item));
+            objects.push(Arc::clone(&self.item));
         }
         objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
         return objects;
@@ -1095,7 +1095,7 @@ pub struct Button {
     text: String,
     length: i32,
     height: i32,
-    item: Option<Rc<RefCell<objecttypes>>>,
+    item: Option<Arc<RefCell<objecttypes>>>,
     effect: Option<Effect>,
     name: String
 }
@@ -1115,7 +1115,7 @@ macro_rules! Button {
 }
 
 impl Button {
-    pub fn new(text: Option<String>, length: Option<i32>, height: Option<i32>, item: Option<Rc<RefCell<objecttypes>>>, effect: Option<Effect>) -> Button {
+    pub fn new(text: Option<String>, length: Option<i32>, height: Option<i32>, item: Option<Arc<RefCell<objecttypes>>>, effect: Option<Effect>) -> Button {
         return Button {
             text: text.unwrap_or("".to_string()),
             length: length.unwrap_or(0),
@@ -1203,11 +1203,11 @@ impl Button {
     pub fn getFormData(&mut self) -> Option<String> {
         return None;
     }
-    pub fn setElement(&mut self, item: Option<Rc<RefCell<objecttypes>>>) {
+    pub fn setElement(&mut self, item: Option<Arc<RefCell<objecttypes>>>) {
         self.item = item;
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         vec![]
     }
 }
@@ -1223,13 +1223,13 @@ macro_rules! Hidden {
 
 #[derive(Clone, Debug)]
 pub struct Hidden {
-    item: Rc<RefCell<objecttypes>>,
+    item: Arc<RefCell<objecttypes>>,
     name: String
 }
 
 impl Hidden {
     pub fn new(
-        item: Option<Rc<RefCell<objecttypes>>>
+        item: Option<Arc<RefCell<objecttypes>>>
     ) -> Hidden {
         return Hidden {
             item: item.unwrap(),
@@ -1257,10 +1257,10 @@ impl Hidden {
         return self.item.as_ref().borrow_mut().getFormData();
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         let mut objects = vec![];
         if &self.item.as_ref().borrow_mut().getName() == name {
-            objects.push(Rc::clone(&self.item));
+            objects.push(Arc::clone(&self.item));
         }
         objects.extend(self.item.as_ref().borrow_mut().getObjectByName(name));
         return objects;
@@ -1330,12 +1330,13 @@ impl Progress {
             }
         }
         bar = padToWidth(bar, self.length);
+        bar = createNLengthStringNL(self.height, &bar);
         if self.showpercent > 0 {
             let num = NumberFormat::new();
-            bar += &num.format(".1f", (self.value - self.min) / (self.max - self.min) * 100.0);
+            bar += &num.format(&(".".to_owned() + &(self.showpercent.to_string().to_owned() + "s")), (self.value - self.min) / (self.max - self.min) * 100.0);
             bar += "%";
         }
-        return createNLengthStringNL(self.height, &bar);
+        return bar;
     }
 
     pub fn getHeight(&self) -> i32 {
@@ -1345,7 +1346,7 @@ impl Progress {
     pub fn getLength(&self) -> i32 {
         if self.showpercent > 0 {
             let num = NumberFormat::new();
-            let mut tmp = num.format(".1f", (self.value - self.min) / (self.max - self.min) * 100.0);
+            let mut tmp = num.format(&(".".to_owned() + &(self.showpercent.to_string().to_owned() + "s")), (self.value - self.min) / (self.max - self.min) * 100.0);
             tmp += "%";
             return self.length + tmp.len() as i32;
         }
@@ -1370,7 +1371,7 @@ impl Progress {
         None
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>> {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>> {
         vec![]
     }
 }
@@ -1514,7 +1515,7 @@ impl objecttypes {
         }
     }
 
-    pub fn getObjectByName(&mut self, name: &str) -> Vec<Rc<RefCell<objecttypes>>>  {
+    pub fn getObjectByName(&mut self, name: &str) -> Vec<Arc<RefCell<objecttypes>>>  {
         match self {
             objecttypes::TEXT(c) => c.getObjectByName(name),
             objecttypes::BOX(c) => c.getObjectByName(name),

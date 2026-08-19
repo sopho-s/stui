@@ -2,7 +2,7 @@ pub mod objects;
 pub mod eventmanager;
 pub mod xmlconverter;
 pub mod util;
-use std::{thread, time::Duration};
+use std::thread;
 use std::sync::mpsc::{Sender, Receiver};
 use std::sync::mpsc::channel;
 use eventmanager::EventQueue;
@@ -14,17 +14,15 @@ use crate::xmlconverter::parseDocument;
 
 fn main() {
     let (mut root, mut signals) = parseDocument("./gui.xml");
-    let duration = Duration::from_millis(100);
     let (sendint, recvint): (Sender<i32>, Receiver<i32>) = channel();
     let (sendevent, recvevent): (Sender<EventQueue>, Receiver<EventQueue>) = channel();
     thread::spawn(
         move || {
-            eventListener(recvint, sendevent);
+            eventListener(recvint, sendevent, 50);
         }
     );
     while true {
         print!("{}\n\r", root.toString());
-        thread::sleep(duration);
         sendint.send(0);
         let tmpqueue = recvevent.recv();
         if tmpqueue.is_ok() {
@@ -52,7 +50,7 @@ fn main() {
         if progress.len() != 0 {
             let mut progressref = progress[0].borrow_mut();
             let mut currentprogressvalue = progressref.convertToProgress().getValue();
-            if currentprogressvalue > 10.0 {
+            if currentprogressvalue > 30.0 {
                 currentprogressvalue = -1.0;
             }
             progressref.convertToProgress().setValue(currentprogressvalue + 1.0);
