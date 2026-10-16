@@ -42,5 +42,3 @@ A rust tui library to allow for html like decleration of gui
     </Column>
 </Box>
 ```
-
-dont use this it is dog shit
