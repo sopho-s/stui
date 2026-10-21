@@ -4,6 +4,8 @@
 
 stui is a library to easily create TUI that can easily be added to any program in post (or during its creation)
 
+stuis main goal was to allow for XML usage to allow TUIs to be made from html like structures
+
 Any stui ui will give you a set and reset string
 
 ```rust
