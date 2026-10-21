@@ -1,44 +1,20 @@
 # stui
 
-A rust tui library to allow for html like decleration of gui
+![](https://github.com/sopho-s/stui/blob/main/example.gif)
 
-```xml
-<Box hasborder="true" paddingleft="2" paddingright="2" paddingup="1" paddingdown="1">
-    <Column gap="1">
-        <Text text="TUI Library Demo" length="69" height="1"/>
- 
-        <Row>
-            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
-                <Column gap="1">
-                    <Text text="Name:" length="20" height="1"/>
-                    <Selector id="0" down="1" isactive="true" activecolour="#09ff00">
-                        <Input length="20" height="1" placeholder="enter name"/>
-                    </Selector>
-                    <Text text="Email:" length="20" height="1"/>
-                    <Selector id="1" down="2" up="0" activecolour="#09ff00">
-                        <Input length="20" height="1" placeholder="your@email.com"/>
-                    </Selector>
-                </Column>
-            </Box>
- 
-            <Box hasborder="true" paddingleft="1" paddingright="1" paddingup="1" paddingdown="1">
-                <Column gap="1">
-                    <Text text="This library supports nested layouts using rows, columns, and boxes with optional borders." length="38" height="3"/>
-                    <Text text="Type to fill the inputs." length="38" height="1"/>
-                </Column>
-            </Box>
-        </Row>
- 
-        <Row gap="2">
-            <Text text="Search:" length="8" height="1"/>
-            <Selector id="2" up="1" activecolour="#09ff00">
-                <Input length="59" height="1" placeholder="search..."/>
-            </Selector>
-        </Row>
- 
-        <Box hasborder="false" paddingleft="0" paddingright="0" paddingup="0" paddingdown="0">
-            <Text text="Press ESC to quit. Backspace to delete." length="67" height="1"/>
-        </Box>
-    </Column>
-</Box>
+stui is a library to easily create TUI that can easily be added to any program in post (or during its creation)
+
+Any stui ui will give you a set and reset string
+
+```rust
+print!("{}\n\r", root.toString()); // prints the ui
+print!("{}", root.getResetString()); // clears the ui
 ```
+
+main.rs is a basic example as shown in the gif on the top of this readme but can be easily modified to fix your needs
+
+For large amounts of inputs, you can take advantage of the form object to get results of all inputs within a form when a submission is recorded to the form
+
+stui uses interrupts to get keyboard inputs, but you should regularly poll the keyboard input queue to update to know when to update the interface
+
+Currently stui doesn't take advantage of some of rusts amazing features (due to me being a c++) so it will be heavily changed in the future to better represent the rust methodology so functions are subject to large amounts of change
