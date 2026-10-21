@@ -2,9 +2,6 @@
 
 pkgs.mkShell {
     buildInputs = with pkgs; [
-        doxygen
-        act
-        docker
         cargo
         rustc
         SDL2
