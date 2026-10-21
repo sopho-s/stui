@@ -16,3 +16,5 @@ main.rs is a basic example as shown in the gif on the top of this readme but can
 For large amounts of inputs, you can take advantage of the form object to get results of all inputs within a form when a submission is recorded to the form
 
 stui uses interrupts to get keyboard inputs, but you should regularly poll the keyboard input queue to update to know when to update the interface
+
+Currently stui doesn't take advantage of some of rusts amazing features (due to me being a c++) so it will be heavily changed in the future to better represent the rust methodology so functions are subject to large amounts of change
